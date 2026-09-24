@@ -51,7 +51,7 @@
   \vspace{0.2cm}
 
   \begin{block}{Objetivo Principal}
-    Comparar a acurácia (viés) e a precisão (Erro Quadrático Médio - RMSE) da Máxima Verossimilhança Restrita (REML) contra os métodos baseados no variograma (WLS e OLS) sob diferentes tamanhos amostrais ($n \in \{50, 100, 200\}$).
+    Comparar a acurácia (viés) e a precisão (Erro Quadrático Médio - RMSE) da Máxima Verossimilhança Restrita (REML) contra os métodos baseados no variograma (WLS e OLS) sob diferentes tamanhos amostrais ($n \in \{50, 500, 1000\}$: Pequena, Média e Grande escala).
   \end{block}
 \end{frame}
 
@@ -98,7 +98,7 @@
       \begin{block}{Configuração da Simulação}
         \begin{itemize}
           \item \textbf{Réplicas Monte Carlo:} $N = 100$ por cenário
-          \item \textbf{Tamanhos Amostrais ($n$):} $50, 100, 200$ pontos
+          \item \textbf{Tamanhos Amostrais ($n$):} $50, 500, 1000$ (Pequena, Média, Grande)
           \item \textbf{Domínio Espacial:} $[0, 100] \times [0, 100]$
           \item \textbf{Métodos Comparados:}
             \begin{enumerate}
@@ -144,24 +144,28 @@
 % ------------------------------------------------------------------------------
 \begin{frame}{Resultados Numéricos Comparativos ($N = 100$)}
   \scriptsize
+  \centering
+  \setlength{\tabcolsep}{4.5pt}
   \begin{table}[h]
     \centering
-    \caption{Comparação entre REML, WLS e OLS (Média Estimada / RMSE)}
-    \begin{tabular}{cccccc}
+    \caption{Desempenho dos Estimadores: Média Estimada e RMSE por Método}
+    \begin{tabular}{ccccccccc}
       \toprule
-      \textbf{Tamanho ($n$)} & \textbf{Parâmetro} & \textbf{Valor Real} & \textbf{REML (Média / RMSE)} & \textbf{WLS (Média / RMSE)} & \textbf{OLS (Média / RMSE)} \\
+      & & & \multicolumn{2}{c}{\textbf{REML}} & \multicolumn{2}{c}{\textbf{WLS}} & \multicolumn{2}{c}{\textbf{OLS}} \\
+      \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
+      \textbf{$n$} & \textbf{Parâmetro} & \textbf{Real} & \textbf{Média} & \textbf{RMSE} & \textbf{Média} & \textbf{RMSE} & \textbf{Média} & \textbf{RMSE} \\
       \midrule
-      $n = 50$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.186 / 0.177} & 0.287 / 0.257 & 0.218 / 0.198 \\
-      $n = 50$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.191 / 0.931} & 1.468 / 1.496 & 1.430 / 1.400 \\
-      $n = 50$ & Alcance ($\phi$)         & 20.0 & \textbf{33.00 / 43.10} & 50.93 / 62.56 & 43.76 / 54.62 \\
+      $n = 50$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.186} & \textbf{0.177} & 0.287 & 0.257 & 0.218 & 0.198 \\
+      $n = 50$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.191} & \textbf{0.931} & 1.468 & 1.496 & 1.430 & 1.400 \\
+      $n = 50$ & Alcance ($\phi$)         & 20.0 & \textbf{33.00} & \textbf{43.10} & 50.93 & 62.56 & 43.76 & 54.62 \\
       \midrule
-      $n = 100$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.187 / 0.107} & 0.237 / 0.145 & 0.208 / 0.138 \\
-      $n = 100$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.145 / 0.578} & 1.395 / 1.116 & 1.376 / 1.133 \\
-      $n = 100$ & Alcance ($\phi$)         & 20.0 & \textbf{26.96 / 26.80} & 42.75 / 52.42 & 38.13 / 46.74 \\
+      $n = 100$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.187} & \textbf{0.107} & 0.237 & 0.145 & 0.208 & 0.138 \\
+      $n = 100$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.145} & \textbf{0.578} & 1.395 & 1.116 & 1.376 & 1.133 \\
+      $n = 100$ & Alcance ($\phi$)         & 20.0 & \textbf{26.96} & \textbf{26.80} & 42.75 & 52.42 & 38.13 & 46.74 \\
       \midrule
-      $n = 200$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.192 / 0.068} & 0.245 / 0.119 & 0.231 / 0.109 \\
-      $n = 200$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.002 / 0.357} & 1.097 / 0.742 & 1.068 / 0.625 \\
-      $n = 200$ & Alcance ($\phi$)         & 20.0 & \textbf{20.30 / 10.48} & 31.16 / 36.52 & 28.32 / 30.68 \\
+      $n = 200$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.192} & \textbf{0.068} & 0.245 & 0.119 & 0.231 & 0.109 \\
+      $n = 200$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.002} & \textbf{0.357} & 1.097 & 0.742 & 1.068 & 0.625 \\
+      $n = 200$ & Alcance ($\phi$)         & 20.0 & \textbf{20.30} & \textbf{10.48} & 31.16 & 36.52 & 28.32 & 30.68 \\
       \bottomrule
     \end{tabular}
   \end{table}
@@ -172,19 +176,9 @@
 % ------------------------------------------------------------------------------
 \begin{frame}{Conclusões}
   \begin{block}{Principais Descobertas}
-    \begin{enumerate}
-      \item \textbf{Superioridade do REML:} O REML superou consistentemente WLS e OLS em acurácia (menor viés) e precisão (menor RMSE) em todos os cenários amostrais.
-      \item \textbf{Mitigação de Superestimativa do Alcance:} Para $n = 50$, o OLS superestimou o alcance em $+118\%$ (RMSE 54.6), enquanto o REML manteve o viés reduzido em $+65\%$ (RMSE 43.1).
-      \item \textbf{Precisão do Efeito Pepita:} O REML estima o Efeito Pepita ($\tau^2$) com RMSE reduzido em mais de $30\%$ em relação ao WLS para $n = 50$.
-    \end{enumerate}
-  \end{block}
-
-  \vspace{0.2cm}
-
-  \begin{block}{Recomendações Práticas para Aplicação}
     \begin{itemize}
-      \item \textbf{Amostras Pequenas a Médias ($n \le 200$):} Priorizar a estimação por REML devido à eficiência estatística superior.
-      \item \textbf{Aplicações de Grande Escala ($n > 1000$):} Utilizar WLS quando o custo computacional da inversão matricial $O(n^3)$ do REML for elevado.
+      \item O REML foi consideravelmente melhor do que WLS e OLS em acurácia e precisão (menor RMSE) em todos os cenários amostrais testados.
+      \item Portanto, para amostras pequenas a médias ($n \le 200$), priorizar a estimação por REML devido à eficiência estatística superior. Para aplicações de grande escala ($n > 1000$), pode ser necessário utilizar WLS.
     \end{itemize}
   \end{block}
 \end{frame}

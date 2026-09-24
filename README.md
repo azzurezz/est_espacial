@@ -52,7 +52,7 @@ Avaliar quão precisos são os métodos de estimação baseados no variograma em
 - Nugget / Efeito Pepita (tau^2): 0.20
 - Partial Sill / Variância Espacial (sigma^2): 1.00
 - Alcance / Range (phi): 20.00 (Modelo Exponencial)
-- Tamanhos Amostrais (n): 50, 100, 200 pontos em um domínio [0, 100] x [0, 100]
+- Tamanhos Amostrais (n): 50, 500, 1000 pontos em um domínio [0, 100] x [0, 100] (Pequena, Média e Grande)
 - Replicações Monte Carlo: N = 100 por cenário (total de 600 ajustes)
 
 ---

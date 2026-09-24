@@ -24,7 +24,7 @@ tau2_true   <- 0.20   # Nugget (Efeito Pepita)
 sigma2_true <- 1.00   # Partial Sill (Variância Espacial)
 phi_true    <- 20.00  # Range (Alcance Espacial - Modelo Exponencial)
 
-sample_sizes <- c(50, 100, 200)
+sample_sizes <- c(50, 500, 1000)
 n_sim        <- 100
 domain_size  <- 100
 
@@ -44,25 +44,24 @@ exp_variogram <- function(h, tau2, sigma2, phi) {
 
 # Calcular Variograma Empírico
 compute_empirical_variogram <- function(coords, z, n_lags = 15, max_dist_ratio = 0.5) {
-  n <- nrow(coords)
-  D <- as.matrix(dist(coords))
-  pairs <- t(combn(n, 2))
-  
-  dist_vec <- D[pairs]
-  sq_diff  <- 0.5 * (z[pairs[, 1]] - z[pairs[, 2]])^2
+  dist_vec <- as.vector(dist(coords))
+  sq_diff  <- 0.5 * as.vector(dist(z))^2
   
   max_dist <- max(dist_vec) * max_dist_ratio
   bins     <- seq(0, max_dist, length.out = n_lags + 1)
   bin_mid  <- (bins[-1] + bins[-length(bins)]) / 2
   
+  bin_idx  <- findInterval(dist_vec, bins, rightmost.closed = TRUE)
+  
   emp_gamma  <- numeric(length(bin_mid))
   bin_counts <- numeric(length(bin_mid))
   
   for (k in 1:length(bin_mid)) {
-    idx <- dist_vec >= bins[k] & dist_vec < bins[k + 1]
-    if (sum(idx) > 0) {
+    idx <- bin_idx == k
+    cnt <- sum(idx)
+    if (cnt > 0) {
       emp_gamma[k]  <- mean(sq_diff[idx])
-      bin_counts[k] <- sum(idx)
+      bin_counts[k] <- cnt
     } else {
       emp_gamma[k]  <- NA
       bin_counts[k] <- 0
@@ -202,8 +201,8 @@ for (n_obs in sample_sizes) {
     coords <- cbind(runif(n_obs, 0, domain_size), runif(n_obs, 0, domain_size))
     D <- as.matrix(dist(coords))
     
-    Sigma <- sigma2_true * exp(-D / phi_true) + diag(tau2_true, n_obs)
-    z <- mvrnorm(1, mu = rep(0, n_obs), Sigma = Sigma)
+    L <- chol(Sigma)
+    z <- as.vector(t(L) %*% rnorm(n_obs))
     
     emp_var <- compute_empirical_variogram(coords, z)
     
@@ -296,7 +295,7 @@ long_raw <- raw_df %>%
       ),
       levels = c("Efeito Pepita (tau^2 = 0.2)", "Patamar Parcial (sigma^2 = 1.0)", "Alcance (phi = 20.0)")
     ),
-    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 100", "n = 200")),
+    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 500", "n = 1000")),
     method  = factor(method, levels = c("REML", "WLS", "OLS"))
   )
 
