@@ -51,30 +51,7 @@
   \vspace{0.2cm}
 
   \begin{block}{Objetivo Principal}
-    Comparar a acurácia (viés) e a precisão (Erro Quadrático Médio - RMSE) da Máxima Verossimilhança Restrita (REML) contra os métodos baseados no variograma (WLS e OLS) sob diferentes tamanhos amostrais ($n \in \{50, 100, 200\}$).
-  \end{block}
-\end{frame}
-
-% ------------------------------------------------------------------------------
-% SLIDE 3: FORMULAÇÃO TEÓRICA DO REML
-% ------------------------------------------------------------------------------
-\begin{frame}{Máxima Verossimilhança Restrita (REML)}
-  \begin{block}{Modelo Gaussiano Espacial}
-    Para um processo espacial $Y \sim \mathcal{N}(X\beta, \Sigma(\theta))$, onde $\Sigma(\theta) = \sigma^2 R(\phi) + \tau^2 I_n$:
-  \end{block}
-
-  \vspace{0.1cm}
-
-  \begin{block}{Log-Verossimilhança Restrita}
-    O método REML separa a estimação dos parâmetros de covariância $\theta = (\tau^2, \sigma^2, \phi)^T$ da estimação dos efeitos fixos $\beta$, eliminando o viés de pequena amostra:
-    \begin{equation*}
-      l_{\text{REML}}(\theta) = -\frac{1}{2} \log |\Sigma(\theta)| - \frac{1}{2} \log |X^T \Sigma(\theta)^{-1} X| - \frac{1}{2} (y - X\hat{\beta})^T \Sigma(\theta)^{-1} (y - X\hat{\beta})
-    \end{equation*}
-    onde $\hat{\beta} = (X^T \Sigma(\theta)^{-1} X)^{-1} X^T \Sigma(\theta)^{-1} y$ é o estimador de Mínimos Quadrados Generalizados (GLS).
-  \end{block}
-
-  \begin{block}{Vantagem Teórica}
-    Ao contrário da Máxima Verossimilhança direta (ML), o REML corrige os graus de liberdade perdidos na estimação da média $\beta$.
+    Comparar a acurácia (viés) e a precisão (Erro Quadrático Médio - RMSE) da REML contra os métodos baseados no variograma (WLS e OLS) sob diferentes tamanhos amostrais pequenos a médios ($n \in \{50, 100, 200\}$).
   \end{block}
 \end{frame}
 
@@ -86,9 +63,9 @@
     \begin{column}{0.48\textwidth}
       \begin{block}{Parâmetros Verdadeiros}
         \begin{itemize}
-          \item \textbf{Efeito Pepita ($\tau^2$):} $0.20$ (Ruído em microescala)
-          \item \textbf{Patamar ($\sigma^2$):} $1.00$ (Variância espacial)
-          \item \textbf{Alcance ($\phi$):} $20.0$ (Decaimento espacial)
+          \item \textbf{Efeito Pepita ($\tau^2$):} $0.20$
+          \item \textbf{Patamar ($\sigma^2$):} $1.00$
+          \item \textbf{Alcance ($\phi$):} $20.0$
           \item \textbf{Modelo:} Exponencial $\gamma(h) = \tau^2 + \sigma^2(1 - e^{-h/\phi})$
         \end{itemize}
       \end{block}
@@ -100,25 +77,10 @@
           \item \textbf{Réplicas Monte Carlo:} $N = 100$ por cenário
           \item \textbf{Tamanhos Amostrais ($n$):} $50, 100, 200$ pontos
           \item \textbf{Domínio Espacial:} $[0, 100] \times [0, 100]$
-          \item \textbf{Métodos Comparados:}
-            \begin{enumerate}
-              \item \textbf{REML}: Verossimilhança exata no subespaço
-              \item \textbf{WLS}: Pesos de Cressie $w_k = \frac{N(h_k)}{\gamma(h_k)^2}$
-              \item \textbf{OLS}: Pesos unitários $w_k = 1$
-            \end{enumerate}
         \end{itemize}
       \end{block}
     \end{column}
   \end{columns}
-\end{frame}
-
-% ------------------------------------------------------------------------------
-% SLIDE 5: EXEMPLO DE VARIOGRAMA E AJUSTES
-% ------------------------------------------------------------------------------
-\begin{frame}{Exemplo de Variograma Empírico e Ajustes}
-  \begin{center}
-    \includegraphics[height=0.73\textheight,keepaspectratio]{plots/exemplo_variograma_ajustado.png}
-  \end{center}
 \end{frame}
 
 % ------------------------------------------------------------------------------
@@ -178,7 +140,7 @@
   \begin{block}{Principais Descobertas}
     \begin{itemize}
       \item O REML foi consideravelmente melhor do que WLS e OLS em acurácia e precisão (menor RMSE) em todos os cenários amostrais testados.
-      \item Portanto, para amostras pequenas a médias ($n \le 200$), priorizar a estimação por REML devido à eficiência estatística superior. Para aplicações de grande escala ($n > 1000$), pode ser necessário utilizar WLS.
+      \item Portanto, para amostras pequenas a médias ($n \le 200$), priorizar a estimação por REML devido à eficiência estatística superior. Para aplicações de grande escala ($n > 1000$), pode ser necessário utilizar WLS devido ao custo computacional.
     \end{itemize}
   \end{block}
 \end{frame}
