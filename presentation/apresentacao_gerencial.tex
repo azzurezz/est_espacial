@@ -146,23 +146,22 @@
   \scriptsize
   \begin{table}[h]
     \centering
-    \caption{Comparação de Desempenho entre REML, WLS e OLS}
-    \begin{tabular}{ccccccc}
+    \caption{Comparação Completa entre REML, WLS e OLS (Média Estimada / RMSE)}
+    \begin{tabular}{cccccc}
       \toprule
-      \textbf{Tamanho ($n$)} & \textbf{Método} & \textbf{Parâmetro} & \textbf{Valor Real} & \textbf{Média Est.} & \textbf{Viés Absoluto} & \textbf{RMSE} \\
+      \textbf{Tamanho ($n$)} & \textbf{Parâmetro} & \textbf{Valor Real} & \textbf{REML (Média / RMSE)} & \textbf{WLS (Média / RMSE)} & \textbf{OLS (Média / RMSE)} \\
       \midrule
-      $n = 50$ & \textbf{REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.186 & -0.014 & \textbf{0.177} \\
-      $n = 50$ & WLS & Efeito Pepita ($\tau^2$) & 0.20 & 0.287 & +0.087 & 0.257 \\
-      $n = 50$ & \textbf{REML} & Alcance ($\phi$)   & 20.0 & 33.00 & +13.00 & \textbf{43.10} \\
-      $n = 50$ & OLS & Alcance ($\phi$)   & 20.0 & 43.76 & +23.76 & 54.62 \\
+      $n = 50$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.186 / 0.177} & 0.287 / 0.257 & 0.218 / 0.198 \\
+      $n = 50$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.191 / 0.931} & 1.468 / 1.496 & 1.430 / 1.400 \\
+      $n = 50$ & Alcance ($\phi$)         & 20.0 & \textbf{33.00 / 43.10} & 50.93 / 62.56 & 43.76 / 54.62 \\
       \midrule
-      $n = 100$ & \textbf{REML} & Patamar ($\sigma^2$) & 1.00 & 1.145 & +0.145 & \textbf{0.578} \\
-      $n = 100$ & OLS & Patamar ($\sigma^2$) & 1.00 & 1.376 & +0.376 & 1.133 \\
-      $n = 100$ & \textbf{REML} & Alcance ($\phi$)   & 20.0 & 26.96 & +6.96  & \textbf{26.80} \\
+      $n = 100$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.187 / 0.107} & 0.237 / 0.145 & 0.208 / 0.138 \\
+      $n = 100$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.145 / 0.578} & 1.395 / 1.116 & 1.376 / 1.133 \\
+      $n = 100$ & Alcance ($\phi$)         & 20.0 & \textbf{26.96 / 26.80} & 42.75 / 52.42 & 38.13 / 46.74 \\
       \midrule
-      $n = 200$ & \textbf{REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.192 & -0.008 & \textbf{0.068} \\
-      $n = 200$ & \textbf{REML} & Patamar ($\sigma^2$) & 1.00 & 1.002 & +0.002 & \textbf{0.357} \\
-      $n = 200$ & \textbf{REML} & Alcance ($\phi$)   & 20.0 & 20.30 & +0.30  & \textbf{10.48} \\
+      $n = 200$ & Efeito Pepita ($\tau^2$) & 0.20 & \textbf{0.192 / 0.068} & 0.245 / 0.119 & 0.231 / 0.109 \\
+      $n = 200$ & Patamar ($\sigma^2$)     & 1.00 & \textbf{1.002 / 0.357} & 1.097 / 0.742 & 1.068 / 0.625 \\
+      $n = 200$ & Alcance ($\phi$)         & 20.0 & \textbf{20.30 / 10.48} & 31.16 / 36.52 & 28.32 / 30.68 \\
       \bottomrule
     \end{tabular}
   \end{table}

@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
 })
 
 # Criar diretórios para salvar plots e dados se não existirem
-if (!dir.exists("plots")) dir.create("plots")
+if (!dir.exists("presentation/plots")) dir.create("presentation/plots", recursive = TRUE)
 if (!dir.exists("data")) dir.create("data")
 
 set.seed(2026)
@@ -260,7 +260,7 @@ p1 <- ggplot() +
   ) +
   theme_academic
 
-ggsave("plots/exemplo_variograma_ajustado.png", p1, width = 8, height = 5, dpi = 300)
+ggsave("presentation/plots/exemplo_variograma_ajustado.png", p1, width = 8, height = 5, dpi = 300)
 
 # --- GRÁFICO 2: Boxplot dos Parâmetros Estimados por Tamanho Amostral ---
 long_raw <- raw_df %>%
@@ -296,7 +296,7 @@ p2 <- ggplot(long_raw, aes(x = n_label, y = estimate, fill = method)) +
   ) +
   theme_academic
 
-ggsave("plots/boxplot_parametros.png", p2, width = 10, height = 6, dpi = 300)
+ggsave("presentation/plots/boxplot_parametros.png", p2, width = 10, height = 6, dpi = 300)
 
 # --- GRÁFICO 3: Evolução do RMSE em Função do Tamanho Amostral ---
 p3 <- ggplot(summary_df, aes(x = factor(n), y = rmse, color = method, group = method)) +
@@ -312,12 +312,12 @@ p3 <- ggplot(summary_df, aes(x = factor(n), y = rmse, color = method, group = me
   ) +
   theme_academic
 
-ggsave("plots/rmse_tamanho_amostral.png", p3, width = 10, height = 5.5, dpi = 300)
+ggsave("presentation/plots/rmse_tamanho_amostral.png", p3, width = 10, height = 5.5, dpi = 300)
 
 cat("\n==================================================================\n")
 cat("SIMULAÇÃO E GERAÇÃO DE GRÁFICOS CONCLUÍDAS COM SUCESSO!\n")
-cat("Gráficos salvos na pasta 'plots/':\n")
-cat(" - plots/exemplo_variograma_ajustado.png\n")
-cat(" - plots/boxplot_parametros.png\n")
-cat(" - plots/rmse_tamanho_amostral.png\n")
+cat("Gráficos salvos na pasta 'presentation/plots/':\n")
+cat(" - presentation/plots/exemplo_variograma_ajustado.png\n")
+cat(" - presentation/plots/boxplot_parametros.png\n")
+cat(" - presentation/plots/rmse_tamanho_amostral.png\n")
 cat("==================================================================\n")

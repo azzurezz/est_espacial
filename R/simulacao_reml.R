@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
 })
 
 # Criar diretórios para salvar plots e dados se não existirem
-if (!dir.exists("plots")) dir.create("plots")
+if (!dir.exists("presentation/plots")) dir.create("presentation/plots", recursive = TRUE)
 if (!dir.exists("data")) dir.create("data")
 
 set.seed(2026)
@@ -320,7 +320,7 @@ p1 <- ggplot(long_raw, aes(x = n_label, y = estimate, fill = method)) +
   ) +
   theme_academic
 
-ggsave("plots/boxplot_reml_vs_wls.png", p1, width = 10, height = 6, dpi = 300)
+ggsave("presentation/plots/boxplot_reml_vs_wls.png", p1, width = 10, height = 6, dpi = 300)
 
 # --- GRÁFICO 2: Comparação de RMSE em Função do Tamanho Amostral ---
 summary_df_plot <- summary_df %>%
@@ -335,15 +335,15 @@ p2 <- ggplot(summary_df_plot, aes(x = factor(n), y = rmse, color = method, group
     title = "Comparação de Eficiência (RMSE): REML vs WLS vs OLS",
     subtitle = "O método REML apresenta menor RMSE para Patamar Parcial e Alcance sob amostras pequenas/médias",
     x = "Tamanho Amostral (n)",
-    y = "RMSE (Raiz do Erro Quadrático Médio)"
+    y = "RMSE"
   ) +
   theme_academic
 
-ggsave("plots/rmse_reml_vs_wls.png", p2, width = 10, height = 5.5, dpi = 300)
+ggsave("presentation/plots/rmse_reml_vs_wls.png", p2, width = 10, height = 5.5, dpi = 300)
 
 cat("\n==================================================================\n")
 cat("SIMULAÇÃO REML E GERAÇÃO DE GRÁFICOS CONCLUÍDAS COM SUCESSO!\n")
-cat("Gráficos salvos na pasta 'plots/':\n")
-cat(" - plots/boxplot_reml_vs_wls.png\n")
-cat(" - plots/rmse_reml_vs_wls.png\n")
+cat("Gráficos salvos na pasta 'presentation/plots/':\n")
+cat(" - presentation/plots/boxplot_reml_vs_wls.png\n")
+cat(" - presentation/plots/rmse_reml_vs_wls.png\n")
 cat("==================================================================\n")
