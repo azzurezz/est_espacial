@@ -24,7 +24,7 @@ tau2_true   <- 0.20   # Nugget (Efeito Pepita)
 sigma2_true <- 1.00   # Partial Sill (Variância Espacial)
 phi_true    <- 20.00  # Range (Alcance Espacial - Modelo Exponencial)
 
-sample_sizes <- c(50, 500, 1000)
+sample_sizes <- c(50, 100, 200)
 n_sim        <- 100
 domain_size  <- 100
 
@@ -274,7 +274,7 @@ long_raw <- raw_df %>%
       ),
       levels = c("Nugget (tau^2 = 0.2)", "Partial Sill (sigma^2 = 1.0)", "Alcance (phi = 20.0)")
     ),
-    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 500", "n = 1000"))
+    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 100", "n = 200"))
   )
 
 true_lines <- data.frame(

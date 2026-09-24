@@ -24,7 +24,7 @@ tau2_true   <- 0.20   # Nugget (Efeito Pepita)
 sigma2_true <- 1.00   # Partial Sill (Variância Espacial)
 phi_true    <- 20.00  # Range (Alcance Espacial - Modelo Exponencial)
 
-sample_sizes <- c(50, 500, 1000)
+sample_sizes <- c(50, 100, 200)
 n_sim        <- 100
 domain_size  <- 100
 
@@ -162,8 +162,8 @@ reml_neg_loglik <- function(par, y, X, D) {
 }
 
 # Ajuste por REML
-fit_reml_model <- function(coords, z) {
-  D <- as.matrix(dist(coords))
+fit_reml_model <- function(coords, z, D = NULL) {
+  if (is.null(D)) D <- as.matrix(dist(coords))
   X <- matrix(1, nrow = length(z), ncol = 1)
   
   init_t2 <- max(0.05, var(z) * 0.2)
@@ -171,14 +171,15 @@ fit_reml_model <- function(coords, z) {
   init_ph <- max(5.0, mean(D) / 4)
   
   res <- optim(
-    par    = c(init_t2, init_s2, init_ph),
-    fn     = reml_neg_loglik,
-    y      = z,
-    X      = X,
-    D      = D,
-    method = "L-BFGS-B",
-    lower  = c(0.0001, 0.0001, 0.5),
-    upper  = c(5.0, 10.0, 150.0)
+    par     = c(init_t2, init_s2, init_ph),
+    fn      = reml_neg_loglik,
+    y       = z,
+    X       = X,
+    D       = D,
+    method  = "L-BFGS-B",
+    lower   = c(0.0001, 0.0001, 0.5),
+    upper   = c(5.0, 10.0, 150.0),
+    control = list(maxit = 30, factr = 1e8)
   )
   
   return(data.frame(
@@ -200,14 +201,14 @@ for (n_obs in sample_sizes) {
   for (i in 1:n_sim) {
     coords <- cbind(runif(n_obs, 0, domain_size), runif(n_obs, 0, domain_size))
     D <- as.matrix(dist(coords))
-    
+    Sigma <- sigma2_true * exp(-D / phi_true) + diag(tau2_true, n_obs)
     L <- chol(Sigma)
     z <- as.vector(t(L) %*% rnorm(n_obs))
     
     emp_var <- compute_empirical_variogram(coords, z)
     
     # 1. Ajuste REML
-    fit_reml <- fit_reml_model(coords, z)
+    fit_reml <- fit_reml_model(coords, z, D = D)
     results_list[[length(results_list) + 1]] <- data.frame(
       sim = i, n = n_obs, method = "REML",
       tau2 = fit_reml$tau2, sigma2 = fit_reml$sigma2, phi = fit_reml$phi
@@ -295,7 +296,7 @@ long_raw <- raw_df %>%
       ),
       levels = c("Efeito Pepita (tau^2 = 0.2)", "Patamar Parcial (sigma^2 = 1.0)", "Alcance (phi = 20.0)")
     ),
-    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 500", "n = 1000")),
+    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 100", "n = 200")),
     method  = factor(method, levels = c("REML", "WLS", "OLS"))
   )
 
