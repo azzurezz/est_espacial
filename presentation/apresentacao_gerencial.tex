@@ -10,24 +10,21 @@
 \usepackage{booktabs}
 \usepackage{colortbl}
 
-% --- TEMA ACADÊMICO SIMPLES E LIMPO ---
-\usetheme{Boadilla}
-\usecolortheme{seahorse}
+% --- TEMA MADRID + WHALE ---
+\usetheme{Madrid}
+\usecolortheme{whale}
 
-% Customização de cores acadêmicas sóbrias
+% Customização de cores adicionais
 \definecolor{darkblue}{rgb}{0.1, 0.2, 0.4}
 \definecolor{remlgreen}{rgb}{0.15, 0.55, 0.25}
-\setbeamercolor{titlelike}{parent=structure,fg=darkblue}
-\setbeamercolor{frametitle}{fg=darkblue,bg=gray!10}
 
 \setbeamertemplate{navigation symbols}{} % Remove ícones de navegação poluídos
-\setbeamertemplate{footline}[frame number] % Mantém numeração de slides limpa
 
 % --- INFORMAÇÕES DO DOCUMENTO ---
-\title[Estimação Espacial: REML vs Variograma]{Estimação de Parâmetros Espaciais: REML vs Variograma}
+\title[Estatística Espacial]{Estimação de Parâmetros Espaciais: REML vs Variograma}
 \subtitle{Avaliação de Desempenho e Eficiência via Simulação Monte Carlo}
-\author[Estatística Espacial]{Estudo de Estatística Espacial}
-\institute[Moraga (2023)]{Baseado em \textit{Spatial Statistics for Data Science: Theory and Practice with R} (Paula Moraga, Cap. 14)}
+\author{Azzure Alves do Carmo}
+\institute[UFES]{Baseado em \textit{Spatial Statistics for Data Science: Theory and Practice with R}}
 \date{\today}
 
 \begin{document}
@@ -42,18 +39,19 @@
 % ------------------------------------------------------------------------------
 % SLIDE 2: CONTEXTO E OBJETIVO ESTRATÉGICO
 % ------------------------------------------------------------------------------
-\begin{frame}{Contexto \& Objetivo Estratégico}
+\begin{frame}{Contexto e Objetivo}
   \begin{block}{Motivação}
     \begin{itemize}
-      \item A \textbf{Krigagem Ordinária} fornece predições espaciais ótimas de variância mínima (Melhor Preditor Linear Não-Viesado - BLUP) cujos pesos dependem da função de covariância espacial.
-      \item Tradicionalmente, os parâmetros (\textbf{Efeito Pepita $\tau^2$}, \textbf{Patamar Parcial $\sigma^2$} e \textbf{Alcance $\phi$}) são estimados por variograma empírico (\textbf{Mínimos Quadrados Ponderados - WLS / Mínimos Quadrados Ordinários - OLS}) ou por verossimilhança (\textbf{Máxima Verossimilhança Restrita - REML}).
+      \item A \textbf{Krigagem Ordinária} fornece predições espaciais ótimas de variância mínima (Melhor Preditor Linear Não Viesado - BLUP) cujos pesos dependem da função de covariância espacial.
+      
+      \item Tradicionalmente, os parâmetros (efeito pepita $\tau^2$, patamar $\sigma^2$ e alcance $\phi$) são estimados por variograma, usando Mínimos Quadrados Ponderados - WLS e Mínimos Quadrados Ordinários - OLS, ou por verossimilhança (Máxima Verossimilhança Restrita - REML).
     \end{itemize}
   \end{block}
 
   \vspace{0.2cm}
 
   \begin{block}{Objetivo Principal}
-    Comparar a acurácia (viés) e a precisão (Erro Quadrático Médio - RMSE) da \textbf{Máxima Verossimilhança Restrita (REML)} contra os métodos baseados no variograma empírico (\textbf{WLS} e \textbf{OLS}) sob diferentes tamanhos amostrais ($n \in \{50, 100, 200\}$).
+    Comparar a acurácia (viés) e a precisão (Erro Quadrático Médio - RMSE) da Máxima Verossimilhança Restrita (REML) contra os métodos baseados no variograma (WLS e OLS) sob diferentes tamanhos amostrais ($n \in \{50, 100, 200\}$).
   \end{block}
 \end{frame}
 
@@ -75,9 +73,9 @@
     onde $\hat{\beta} = (X^T \Sigma(\theta)^{-1} X)^{-1} X^T \Sigma(\theta)^{-1} y$ é o estimador de Mínimos Quadrados Generalizados (GLS).
   \end{block}
 
-  \begin{alertblock}{Vantagem Teórica}
+  \begin{block}{Vantagem Teórica}
     Ao contrário da Máxima Verossimilhança direta (ML), o REML corrige os graus de liberdade perdidos na estimação da média $\beta$.
-  \end{alertblock}
+  \end{block}
 \end{frame}
 
 % ------------------------------------------------------------------------------
@@ -89,7 +87,7 @@
       \begin{block}{Parâmetros Verdadeiros}
         \begin{itemize}
           \item \textbf{Efeito Pepita ($\tau^2$):} $0.20$ (Ruído em microescala)
-          \item \textbf{Patamar Parcial ($\sigma^2$):} $1.00$ (Variância espacial)
+          \item \textbf{Patamar ($\sigma^2$):} $1.00$ (Variância espacial)
           \item \textbf{Alcance ($\phi$):} $20.0$ (Decaimento espacial)
           \item \textbf{Modelo:} Exponencial $\gamma(h) = \tau^2 + \sigma^2(1 - e^{-h/\phi})$
         \end{itemize}
@@ -104,7 +102,7 @@
           \item \textbf{Domínio Espacial:} $[0, 100] \times [0, 100]$
           \item \textbf{Métodos Comparados:}
             \begin{enumerate}
-              \item \textbf{\color{remlgreen}REML}: Verossimilhança exata no subespaço
+              \item \textbf{REML}: Verossimilhança exata no subespaço
               \item \textbf{WLS}: Pesos de Cressie $w_k = \frac{N(h_k)}{\gamma(h_k)^2}$
               \item \textbf{OLS}: Pesos unitários $w_k = 1$
             \end{enumerate}
@@ -119,7 +117,7 @@
 % ------------------------------------------------------------------------------
 \begin{frame}{Exemplo de Variograma Empírico e Ajustes}
   \begin{center}
-    \includegraphics[height=0.73\textheight,keepaspectratio]{../plots/exemplo_variograma_ajustado.png}
+    \includegraphics[height=0.73\textheight,keepaspectratio]{plots/exemplo_variograma_ajustado.png}
   \end{center}
 \end{frame}
 
@@ -128,7 +126,7 @@
 % ------------------------------------------------------------------------------
 \begin{frame}{Distribuição dos Parâmetros: REML vs WLS vs OLS}
   \begin{center}
-    \includegraphics[height=0.73\textheight,keepaspectratio]{../plots/boxplot_reml_vs_wls.png}
+    \includegraphics[height=0.73\textheight,keepaspectratio]{plots/boxplot_reml_vs_wls.png}
   \end{center}
 \end{frame}
 
@@ -137,7 +135,7 @@
 % ------------------------------------------------------------------------------
 \begin{frame}{Comparação de Eficiência (RMSE por Amostra)}
   \begin{center}
-    \includegraphics[height=0.73\textheight,keepaspectratio]{../plots/rmse_reml_vs_wls.png}
+    \includegraphics[height=0.73\textheight,keepaspectratio]{plots/rmse_reml_vs_wls.png}
   \end{center}
 \end{frame}
 
@@ -153,18 +151,18 @@
       \toprule
       \textbf{Tamanho ($n$)} & \textbf{Método} & \textbf{Parâmetro} & \textbf{Valor Real} & \textbf{Média Est.} & \textbf{Viés Absoluto} & \textbf{RMSE} \\
       \midrule
-      $n = 50$ & \textbf{\color{remlgreen}REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.186 & -0.014 & \textbf{0.177} \\
+      $n = 50$ & \textbf{REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.186 & -0.014 & \textbf{0.177} \\
       $n = 50$ & WLS & Efeito Pepita ($\tau^2$) & 0.20 & 0.287 & +0.087 & 0.257 \\
-      $n = 50$ & \textbf{\color{remlgreen}REML} & Alcance ($\phi$)   & 20.0 & 33.00 & +13.00 & \textbf{43.10} \\
+      $n = 50$ & \textbf{REML} & Alcance ($\phi$)   & 20.0 & 33.00 & +13.00 & \textbf{43.10} \\
       $n = 50$ & OLS & Alcance ($\phi$)   & 20.0 & 43.76 & +23.76 & 54.62 \\
       \midrule
-      $n = 100$ & \textbf{\color{remlgreen}REML} & Patamar Parcial ($\sigma^2$) & 1.00 & 1.145 & +0.145 & \textbf{0.578} \\
-      $n = 100$ & OLS & Patamar Parcial ($\sigma^2$) & 1.00 & 1.376 & +0.376 & 1.133 \\
-      $n = 100$ & \textbf{\color{remlgreen}REML} & Alcance ($\phi$)   & 20.0 & 26.96 & +6.96  & \textbf{26.80} \\
+      $n = 100$ & \textbf{REML} & Patamar ($\sigma^2$) & 1.00 & 1.145 & +0.145 & \textbf{0.578} \\
+      $n = 100$ & OLS & Patamar ($\sigma^2$) & 1.00 & 1.376 & +0.376 & 1.133 \\
+      $n = 100$ & \textbf{REML} & Alcance ($\phi$)   & 20.0 & 26.96 & +6.96  & \textbf{26.80} \\
       \midrule
-      $n = 200$ & \textbf{\color{remlgreen}REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.192 & -0.008 & \textbf{0.068} \\
-      $n = 200$ & \textbf{\color{remlgreen}REML} & Patamar Parcial ($\sigma^2$) & 1.00 & 1.002 & +0.002 & \textbf{0.357} \\
-      $n = 200$ & \textbf{\color{remlgreen}REML} & Alcance ($\phi$)   & 20.0 & 20.30 & +0.30  & \textbf{10.48} \\
+      $n = 200$ & \textbf{REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.192 & -0.008 & \textbf{0.068} \\
+      $n = 200$ & \textbf{REML} & Patamar ($\sigma^2$) & 1.00 & 1.002 & +0.002 & \textbf{0.357} \\
+      $n = 200$ & \textbf{REML} & Alcance ($\phi$)   & 20.0 & 20.30 & +0.30  & \textbf{10.48} \\
       \bottomrule
     \end{tabular}
   \end{table}
@@ -173,7 +171,7 @@
 % ------------------------------------------------------------------------------
 % SLIDE 9: RECOMENDAÇÕES GERENCIAIS
 % ------------------------------------------------------------------------------
-\begin{frame}{Conclusões \& Recomendações Gerenciais}
+\begin{frame}{Conclusões}
   \begin{block}{Principais Descobertas}
     \begin{enumerate}
       \item \textbf{Superioridade do REML:} O REML superou consistentemente WLS e OLS em acurácia (menor viés) e precisão (menor RMSE) em todos os cenários amostrais.
@@ -184,12 +182,12 @@
 
   \vspace{0.2cm}
 
-  \begin{alertblock}{Recomendações Práticas para Aplicação}
+  \begin{block}{Recomendações Práticas para Aplicação}
     \begin{itemize}
-      \item \textbf{Amostras Pequenas a Médias ($n \le 200$):} Priorizar a estimação por **REML** devido à eficiência estatística superior.
+      \item \textbf{Amostras Pequenas a Médias ($n \le 200$):} Priorizar a estimação por REML devido à eficiência estatística superior.
       \item \textbf{Aplicações de Grande Escala ($n > 1000$):} Utilizar WLS quando o custo computacional da inversão matricial $O(n^3)$ do REML for elevado.
     \end{itemize}
-  \end{alertblock}
+  \end{block}
 \end{frame}
 
 \end{document}
