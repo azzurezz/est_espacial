@@ -28,16 +28,15 @@ est_espacial/
 │   ├── sim_reml_summary.csv      # Tabela síntese REML vs WLS vs OLS
 │   └── sim_reml_detailed.csv     # Dados brutos das simulações REML vs WLS vs OLS
 │
-├── plots/                        # Gráficos e visualizações exportadas em PNG
-│   ├── exemplo_variograma_ajustado.png  # Exemplo de ajuste de modelos ao variograma empírico
-│   ├── boxplot_parametros.png           # Distribuição dos parâmetros estimados (WLS vs OLS)
-│   ├── rmse_tamanho_amostral.png        # Evolução do RMSE por tamanho amostral (WLS vs OLS)
-│   ├── boxplot_reml_vs_wls.png          # Boxplot comparativo REML vs WLS vs OLS
-│   └── rmse_reml_vs_wls.png             # Evolução do RMSE do REML vs WLS vs OLS
-│
 └── presentation/                 # Apresentação Gerencial/Acadêmica em LaTeX Beamer
     ├── apresentacao_gerencial.tex # Código-fonte LaTeX da apresentação acadêmica
-    └── apresentacao_gerencial.pdf # Apresentação compilada em PDF
+    ├── apresentacao_gerencial.pdf # Apresentação compilada em PDF
+    └── plots/                    # Gráficos e visualizações exportadas em PNG
+        ├── exemplo_variograma_ajustado.png  # Exemplo de ajuste de modelos ao variograma empírico
+        ├── boxplot_parametros.png           # Distribuição dos parâmetros estimados (WLS vs OLS)
+        ├── rmse_tamanho_amostral.png        # Evolução do RMSE por tamanho amostral (WLS vs OLS)
+        ├── boxplot_reml_vs_wls.png          # Boxplot comparativo REML vs WLS vs OLS
+        └── rmse_reml_vs_wls.png             # Evolução do RMSE do REML vs WLS vs OLS
 ```
 
 ---
@@ -64,7 +63,7 @@ Avaliar quão precisos são os métodos de estimação baseados no variograma em
 
 A Máxima Verossimilhança Restrita (REML) estima os parâmetros de covariância theta = (tau^2, sigma^2, phi) maximizando a verossimilhança no subespaço ortogonal à matriz de desenho X (efeitos fixos/média). Isso elimina o viés de pequena amostra associado à estimativa da média:
 
-l_REML(theta) = -0.5 * log|Sigma| - 0.5 * log|X' Sigma^-1 X| - 0.5 * (y - X beta_hat)' Sigma^-1 (y - X beta_hat) - ((n-p)/2) * log(2 pi)
+l_REML(theta) = -0.5 *log|Sigma| - 0.5* log|X' Sigma^-1 X| - 0.5 *(y - X beta_hat)' Sigma^-1 (y - X beta_hat) - ((n-p)/2)* log(2 pi)
 
 ### Principais Descobertas do REML
 
@@ -86,7 +85,7 @@ Rscript R/install_packages.R
 
 ### 2. Rodar a Simulação WLS vs OLS
 
-Para rodar as simulações do variograma e atualizar os gráficos na pasta `plots/` e tabelas em `data/`:
+Para rodar as simulações do variograma e atualizar os gráficos na pasta `presentation/plots/` e tabelas em `data/`:
 
 ```bash
 Rscript R/simulacao_estimacao.R
