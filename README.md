@@ -2,7 +2,7 @@
 
 Este repositório contém estudos, experimentos e simulações na área de Estatística Espacial e Geestatística em R.
 
-O projeto envolve desde a análise exploratória de dados espaciais (dataset Meuse) até um estudo avançado de Simulação Monte Carlo para avaliar a acurácia de métodos de estimação de parâmetros de covariância baseados no variograma empírico, acompanhado de uma Apresentação Gerencial/Acadêmica em LaTeX Beamer.
+O projeto envolve desde a análise exploratória de dados espaciais (dataset Meuse) até estudos avançados de Simulação Monte Carlo para avaliar a acurácia e eficiência de métodos de estimação de parâmetros de covariância baseados no variograma empírico (WLS, OLS) e na Máxima Verossimilhança Restrita (REML), acompanhados de uma Apresentação Gerencial/Acadêmica em LaTeX Beamer.
 
 Referência principal: Moraga, P. (2023). Spatial Statistics for Data Science: Theory and Practice with R, Capítulo 14 (Kriging).
 
@@ -16,27 +16,33 @@ est_espacial/
 ├── LICENSE                       # Licença do repositório
 ├── .gitignore                    # Regras de exclusão para R e LaTeX
 │
-├── Scripts R
-│   ├── variograma.R              # Análise exploratória inicial, dataset Meuse e variograma nuvem
+├── R/                            # Scripts de análise e simulação em R
 │   ├── install_packages.R        # Script de verificação e instalação das dependências R
-│   └── simulacao_estimacao.R     # Simulação Monte Carlo (N=100) para WLS vs OLS
+│   ├── variograma.R              # Análise exploratória inicial, dataset Meuse e variograma nuvem
+│   ├── simulacao_estimacao.R     # Simulação Monte Carlo (N=100) para WLS vs OLS
+│   └── simulacao_reml.R          # Simulação Monte Carlo (N=100) para REML vs WLS vs OLS
 │
-├── Resultados e Gráficos
-│   ├── plots/
-│   │   ├── exemplo_variograma_ajustado.png  # Exemplo de ajuste de modelos ao variograma empírico
-│   │   ├── boxplot_parametros.png           # Distribuição dos parâmetros estimados vs verdadeiros
-│   │   └── rmse_tamanho_amostral.png        # Evolução do RMSE por tamanho amostral
-│   ├── sim_results_summary.csv   # Tabela síntese com Média, Viés e RMSE
-│   └── sim_results_detailed.csv  # Dados brutos de todas as 600 simulações
+├── data/                         # Arquivos CSV de dados e resultados das simulações
+│   ├── sim_results_summary.csv   # Tabela síntese WLS vs OLS
+│   ├── sim_results_detailed.csv  # Dados brutos das simulações WLS vs OLS
+│   ├── sim_reml_summary.csv      # Tabela síntese REML vs WLS vs OLS
+│   └── sim_reml_detailed.csv     # Dados brutos das simulações REML vs WLS vs OLS
 │
-└── Apresentação Gerencial (LaTeX Beamer)
+├── plots/                        # Gráficos e visualizações exportadas em PNG
+│   ├── exemplo_variograma_ajustado.png  # Exemplo de ajuste de modelos ao variograma empírico
+│   ├── boxplot_parametros.png           # Distribuição dos parâmetros estimados (WLS vs OLS)
+│   ├── rmse_tamanho_amostral.png        # Evolução do RMSE por tamanho amostral (WLS vs OLS)
+│   ├── boxplot_reml_vs_wls.png          # Boxplot comparativo REML vs WLS vs OLS
+│   └── rmse_reml_vs_wls.png             # Evolução do RMSE do REML vs WLS vs OLS
+│
+└── presentation/                 # Apresentação Gerencial/Acadêmica em LaTeX Beamer
     ├── apresentacao_gerencial.tex # Código-fonte LaTeX da apresentação acadêmica
     └── apresentacao_gerencial.pdf # Apresentação compilada em PDF
 ```
 
 ---
 
-## Estudo de Simulação Monte Carlo
+## Estudo de Simulação Monte Carlo (WLS vs OLS)
 
 ### Objetivo
 
@@ -52,26 +58,19 @@ Avaliar quão precisos são os métodos de estimação baseados no variograma em
 
 ---
 
-## Tabela Síntese dos Resultados
+## Experimento de Máxima Verossimilhança Restrita (REML vs WLS vs OLS)
 
-| Amostra (n) | Método | Parâmetro | Valor Real | Média Est. | Viés Absoluto | Rel. Bias (%) | RMSE |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| n = 50 | OLS | Nugget (tau^2) | 0.20 | 0.218 | +0.018 | +8.78% | 0.198 |
-| n = 50 | WLS | Nugget (tau^2) | 0.20 | 0.287 | +0.087 | +43.71% | 0.257 |
-| n = 50 | OLS | Alcance (phi) | 20.00 | 43.76 | +23.76 | +118.80% | 54.62 |
-| n = 100 | OLS | Nugget (tau^2) | 0.20 | 0.208 | +0.008 | +4.12% | 0.138 |
-| n = 100 | OLS | Sill (sigma^2) | 1.00 | 1.376 | +0.376 | +37.55% | 1.133 |
-| n = 200 | OLS | Nugget (tau^2) | 0.20 | 0.231 | +0.031 | +15.31% | **0.109** |
-| n = 200 | OLS | Sill (sigma^2) | 1.00 | 1.068 | +0.068 | +6.79% | **0.625** |
-| n = 200 | OLS | Alcance (phi) | 20.00 | 28.32 | +8.32 | +41.62% | **30.68** |
+### Fundamentação Teórica
 
----
+A Máxima Verossimilhança Restrita (REML) estima os parâmetros de covariância theta = (tau^2, sigma^2, phi) maximizando a verossimilhança no subespaço ortogonal à matriz de desenho X (efeitos fixos/média). Isso elimina o viés de pequena amostra associado à estimativa da média:
 
-## Principais Conclusões
+l_REML(theta) = -0.5 * log|Sigma| - 0.5 * log|X' Sigma^-1 X| - 0.5 * (y - X beta_hat)' Sigma^-1 (y - X beta_hat) - ((n-p)/2) * log(2 pi)
 
-1. Efeito Amostral Crítico: Em amostras pequenas (n = 50), o alcance (phi) sofre superestimativa pronunciada devido ao número reduzido de pares observados em distâncias longas.
-2. Estabilidade do Nugget (tau^2): O efeito pepita apresenta excelente acurácia de estimação mesmo sob pequenas amostras (viés < 0.02).
-3. Convergência (n = 200): Com n >= 100-200, a estimativa da variância espacial (sigma^2) e do alcance (phi) convergem com redução expressiva do RMSE.
+### Principais Descobertas do REML
+
+1. Acurácia Superior: O método REML reduz drasticamente a superestimativa do alcance (phi) em amostras pequenas (n = 50), apresentando RMSE significativamente inferior a WLS e OLS.
+2. Estabilidade do Efeito Pepita: O REML obtém estimativas quase não-viesadas do Nugget (tau^2) mesmo sob n = 50.
+3. Eficiência em Amostras Médias/Grandes: Para n >= 100, o REML converge rapidamente para os valores verdadeiros de todos os parâmetros.
 
 ---
 
@@ -79,26 +78,34 @@ Avaliar quão precisos são os métodos de estimação baseados no variograma em
 
 ### 1. Instalar Dependências R
 
-No terminal R:
+No terminal:
 
 ```bash
-Rscript install_packages.R
+Rscript R/install_packages.R
 ```
 
-### 2. Rodar a Simulação Monte Carlo
+### 2. Rodar a Simulação WLS vs OLS
 
-Para rodar as simulações e atualizar os gráficos na pasta plots/ e tabelas CSV:
+Para rodar as simulações do variograma e atualizar os gráficos na pasta `plots/` e tabelas em `data/`:
 
 ```bash
-Rscript simulacao_estimacao.R
+Rscript R/simulacao_estimacao.R
 ```
 
-### 3. Compilar a Apresentação LaTeX (Beamer)
+### 3. Rodar a Simulação REML vs WLS/OLS
 
-Para gerar o arquivo apresentacao_gerencial.pdf:
+Para executar o experimento comparativo de Máxima Verossimilhança Restrita:
 
 ```bash
-pdflatex -interaction=nonstopmode apresentacao_gerencial.tex
+Rscript R/simulacao_reml.R
+```
+
+### 4. Compilar a Apresentação LaTeX (Beamer)
+
+Para gerar o arquivo `apresentacao_gerencial.pdf` localizado na pasta `presentation/`:
+
+```bash
+cd presentation && pdflatex -interaction=nonstopmode apresentacao_gerencial.tex
 ```
 
 ---

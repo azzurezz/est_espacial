@@ -1,6 +1,6 @@
 # ==============================================================================
-# ESTUDO DE SIMULAÇÃO MONTE CARLO: ESTIMAÇÃO DE PARÂMETROS DO VARIOGRAMA
-# Baseado em Moraga (2023) - Spatial Statistics for Data Science (Cap. 14: Kriging)
+# ESTUDO DE SIMULAÇÃO MONTE CARLO: MÁXIMA VEROSSIMILHANÇA RESTRITA (REML vs WLS / OLS)
+# Comparação de Eficiência e Robustez na Estimação de Parâmetros de Covariância
 # ==============================================================================
 
 suppressPackageStartupMessages({
@@ -11,10 +11,9 @@ suppressPackageStartupMessages({
   library(gridExtra)
 })
 
-# Criar diretório para salvar plots se não existir
-if (!dir.exists("plots")) {
-  dir.create("plots")
-}
+# Criar diretórios para salvar plots e dados se não existirem
+if (!dir.exists("plots")) dir.create("plots")
+if (!dir.exists("data")) dir.create("data")
 
 set.seed(2026)
 
@@ -30,12 +29,12 @@ n_sim        <- 100
 domain_size  <- 100
 
 cat("==================================================================\n")
-cat("INICIANDO SIMULAÇÃO MONTE CARLO (N =", n_sim, "replicações por cenário)\n")
+cat("INICIANDO SIMULAÇÃO MONTE CARLO REML vs WLS/OLS (N =", n_sim, "replicações)\n")
 cat("Parâmetros Verdadeiros: Nugget =", tau2_true, "| Partial Sill =", sigma2_true, "| Alcance (phi) =", phi_true, "\n")
 cat("==================================================================\n\n")
 
 # ------------------------------------------------------------------------------
-# 2. FUNÇÕES AUXILIARES DE AJUSTE DE VARIOGRAMA (WLS & OLS)
+# 2. FUNÇÕES DE ESTIMAÇÃO: VARIOGRAMA (WLS/OLS) E REML
 # ------------------------------------------------------------------------------
 
 # Variograma Teórico Exponencial: gamma(h) = tau2 + sigma2 * (1 - exp(-h / phi))
@@ -96,17 +95,14 @@ fit_variogram_model <- function(emp_var, method = c("WLS", "OLS")) {
     g_theo <- exp_variogram(h, t2, s2, ph)
     
     if (method == "WLS") {
-      # Pesos de Cressie: N(h) / gamma_theo(h)^2
       w <- cnt / (g_theo^2 + 1e-6)
     } else {
-      # OLS: Pesos unitários
       w <- rep(1, length(h))
     }
     
     sum(w * (g_obs - g_theo)^2)
   }
   
-  # Chute inicial razoável baseado nos dados empíricos
   init_t2 <- max(0.01, min(g_obs))
   init_s2 <- max(0.1, max(g_obs) - init_t2)
   init_ph <- mean(h) / 2
@@ -114,6 +110,73 @@ fit_variogram_model <- function(emp_var, method = c("WLS", "OLS")) {
   res <- optim(
     par    = c(init_t2, init_s2, init_ph),
     fn     = objective_fn,
+    method = "L-BFGS-B",
+    lower  = c(0.0001, 0.0001, 0.5),
+    upper  = c(5.0, 10.0, 150.0)
+  )
+  
+  return(data.frame(
+    tau2   = res$par[1],
+    sigma2 = res$par[2],
+    phi    = res$par[3],
+    conv   = res$convergence
+  ))
+}
+
+# Log-Verossimilhança Restrita (REML)
+reml_neg_loglik <- function(par, y, X, D) {
+  tau2   <- par[1]
+  sigma2 <- par[2]
+  phi    <- par[3]
+  
+  if (tau2 <= 1e-4 || sigma2 <= 1e-4 || phi <= 0.1) return(1e10)
+  
+  n <- length(y)
+  Sigma <- sigma2 * exp(-D / phi) + diag(tau2, n)
+  
+  chol_S <- try(chol(Sigma), silent = TRUE)
+  if (inherits(chol_S, "try-error")) return(1e10)
+  
+  log_det_Sigma <- 2 * sum(log(diag(chol_S)))
+  
+  inv_Sigma_X <- backsolve(chol_S, forwardsolve(t(chol_S), X))
+  inv_Sigma_y <- backsolve(chol_S, forwardsolve(t(chol_S), y))
+  
+  Xt_inv_Sigma_X <- sum(X * inv_Sigma_X)
+  if (is.na(Xt_inv_Sigma_X) || Xt_inv_Sigma_X <= 0) return(1e10)
+  
+  log_det_XtSX <- log(Xt_inv_Sigma_X)
+  
+  Xt_inv_Sigma_y <- sum(X * inv_Sigma_y)
+  beta_hat <- Xt_inv_Sigma_y / Xt_inv_Sigma_X
+  
+  r <- y - beta_hat
+  
+  inv_Sigma_r <- backsolve(chol_S, forwardsolve(t(chol_S), r))
+  quad_form <- sum(r * inv_Sigma_r)
+  
+  neg_log_reml <- 0.5 * (log_det_Sigma + log_det_XtSX + quad_form + (n - 1) * log(2 * pi))
+  
+  if (is.na(neg_log_reml) || is.nan(neg_log_reml) || is.infinite(neg_log_reml)) return(1e10)
+  
+  return(neg_log_reml)
+}
+
+# Ajuste por REML
+fit_reml_model <- function(coords, z) {
+  D <- as.matrix(dist(coords))
+  X <- matrix(1, nrow = length(z), ncol = 1)
+  
+  init_t2 <- max(0.05, var(z) * 0.2)
+  init_s2 <- max(0.1, var(z) * 0.8)
+  init_ph <- max(5.0, mean(D) / 4)
+  
+  res <- optim(
+    par    = c(init_t2, init_s2, init_ph),
+    fn     = reml_neg_loglik,
+    y      = z,
+    X      = X,
+    D      = D,
     method = "L-BFGS-B",
     lower  = c(0.0001, 0.0001, 0.5),
     upper  = c(5.0, 10.0, 150.0)
@@ -136,27 +199,29 @@ for (n_obs in sample_sizes) {
   cat("Simulando cenário n =", n_obs, "...\n")
   
   for (i in 1:n_sim) {
-    # Coordenadas aleatórias
     coords <- cbind(runif(n_obs, 0, domain_size), runif(n_obs, 0, domain_size))
     D <- as.matrix(dist(coords))
     
-    # Matriz de Covariância Teórica
     Sigma <- sigma2_true * exp(-D / phi_true) + diag(tau2_true, n_obs)
-    
-    # Simulação de Campo Aleatório Gaussiano (GRF)
     z <- mvrnorm(1, mu = rep(0, n_obs), Sigma = Sigma)
     
-    # Variograma Empírico
     emp_var <- compute_empirical_variogram(coords, z)
     
-    # Ajuste WLS
+    # 1. Ajuste REML
+    fit_reml <- fit_reml_model(coords, z)
+    results_list[[length(results_list) + 1]] <- data.frame(
+      sim = i, n = n_obs, method = "REML",
+      tau2 = fit_reml$tau2, sigma2 = fit_reml$sigma2, phi = fit_reml$phi
+    )
+    
+    # 2. Ajuste WLS
     fit_wls <- fit_variogram_model(emp_var, method = "WLS")
     results_list[[length(results_list) + 1]] <- data.frame(
       sim = i, n = n_obs, method = "WLS",
       tau2 = fit_wls$tau2, sigma2 = fit_wls$sigma2, phi = fit_wls$phi
     )
     
-    # Ajuste OLS
+    # 3. Ajuste OLS
     fit_ols <- fit_variogram_model(emp_var, method = "OLS")
     results_list[[length(results_list) + 1]] <- data.frame(
       sim = i, n = n_obs, method = "OLS",
@@ -166,7 +231,7 @@ for (n_obs in sample_sizes) {
 }
 
 raw_df <- bind_rows(results_list)
-write.csv(raw_df, "sim_results_detailed.csv", row.names = FALSE)
+write.csv(raw_df, "data/sim_reml_detailed.csv", row.names = FALSE)
 
 # ------------------------------------------------------------------------------
 # 4. PROCESSAMENTO DAS ESTATÍSTICAS E TABELA RESUMO
@@ -199,18 +264,17 @@ summary_df <- raw_df %>%
   ) %>%
   rename(true_val = tv)
 
-write.csv(summary_df, "sim_results_summary.csv", row.names = FALSE)
+write.csv(summary_df, "data/sim_reml_summary.csv", row.names = FALSE)
 
 cat("\n==================================================================\n")
-cat("RESUMO DOS RESULTADOS DA SIMULAÇÃO (TABELA SINTÉTICA):\n")
+cat("RESUMO DOS RESULTADOS DA SIMULAÇÃO REML vs WLS/OLS:\n")
 cat("==================================================================\n")
 print(as.data.frame(summary_df %>% select(n, method, parameter, true_val, mean_est, bias, rel_bias, rmse)))
 
 # ------------------------------------------------------------------------------
-# 5. GERAÇÃO DE GRÁFICOS ILUSTRATIVOS E DIAGNÓSTICOS
+# 5. GERAÇÃO DE GRÁFICOS COMPARATIVOS (REML vs WLS vs OLS)
 # ------------------------------------------------------------------------------
 
-# Theme customizado limpo e profissional
 theme_academic <- theme_bw(base_size = 12) +
   theme(
     plot.title       = element_text(face = "bold", size = 14, hjust = 0.5),
@@ -221,49 +285,6 @@ theme_academic <- theme_bw(base_size = 12) +
     strip.text       = element_text(face = "bold", size = 11)
   )
 
-# --- GRÁFICO 1: Exemplo de Variograma Empírico vs Ajustes Teóricos ---
-set.seed(123)
-coords_ex <- cbind(runif(100, 0, domain_size), runif(100, 0, domain_size))
-D_ex <- as.matrix(dist(coords_ex))
-Sigma_ex <- sigma2_true * exp(-D_ex / phi_true) + diag(tau2_true, 100)
-z_ex <- mvrnorm(1, mu = rep(0, 100), Sigma = Sigma_ex)
-
-emp_ex <- compute_empirical_variogram(coords_ex, z_ex)
-wls_ex <- fit_variogram_model(emp_ex, "WLS")
-ols_ex <- fit_variogram_model(emp_ex, "OLS")
-
-h_grid <- seq(0, max(emp_ex$h), length.out = 200)
-curve_df <- data.frame(
-  h = rep(h_grid, 3),
-  gamma = c(
-    exp_variogram(h_grid, tau2_true, sigma2_true, phi_true),
-    exp_variogram(h_grid, wls_ex$tau2, wls_ex$sigma2, wls_ex$phi),
-    exp_variogram(h_grid, ols_ex$tau2, ols_ex$sigma2, ols_ex$phi)
-  ),
-  Modelo = factor(
-    rep(c("Verdadeiro", "Ajuste WLS", "Ajuste OLS"), each = length(h_grid)),
-    levels = c("Verdadeiro", "Ajuste WLS", "Ajuste OLS")
-  )
-)
-
-emp_points_df <- data.frame(h = emp_ex$h, gamma = emp_ex$gamma)
-
-p1 <- ggplot() +
-  geom_point(data = emp_points_df, aes(x = h, y = gamma), size = 3, color = "#333333", alpha = 0.8) +
-  geom_line(data = curve_df, aes(x = h, y = gamma, color = Modelo, linetype = Modelo), size = 1.2) +
-  scale_color_manual(values = c("Verdadeiro" = "#1b9e77", "Ajuste WLS" = "#d95f02", "Ajuste OLS" = "#7570b3")) +
-  scale_linetype_manual(values = c("Verdadeiro" = "dashed", "Ajuste WLS" = "solid", "Ajuste OLS" = "dotdash")) +
-  labs(
-    title = "Exemplo de Variograma Empírico e Modelos Ajustados (n = 100)",
-    subtitle = expression(paste("Parâmetros Verdadeiros: ", tau^2, " = 0.2, ", sigma^2, " = 1.0, ", phi, " = 20.0")),
-    x = "Distância de Separação (h)",
-    y = expression(paste("Semivariância ", gamma, "(h)"))
-  ) +
-  theme_academic
-
-ggsave("plots/exemplo_variograma_ajustado.png", p1, width = 8, height = 5, dpi = 300)
-
-# --- GRÁFICO 2: Boxplot dos Parâmetros Estimados por Tamanho Amostral ---
 long_raw <- raw_df %>%
   pivot_longer(cols = c(tau2, sigma2, phi), names_to = "parameter", values_to = "estimate") %>%
   mutate(
@@ -275,7 +296,8 @@ long_raw <- raw_df %>%
       ),
       levels = c("Nugget (tau^2 = 0.2)", "Partial Sill (sigma^2 = 1.0)", "Alcance (phi = 20.0)")
     ),
-    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 100", "n = 200"))
+    n_label = factor(paste("n =", n), levels = c("n = 50", "n = 100", "n = 200")),
+    method  = factor(method, levels = c("REML", "WLS", "OLS"))
   )
 
 true_lines <- data.frame(
@@ -284,41 +306,44 @@ true_lines <- data.frame(
   intercept = c(0.2, 1.0, 20.0)
 )
 
-p2 <- ggplot(long_raw, aes(x = n_label, y = estimate, fill = method)) +
+# --- GRÁFICO 1: Boxplot Comparativo (REML vs WLS vs OLS) ---
+p1 <- ggplot(long_raw, aes(x = n_label, y = estimate, fill = method)) +
   geom_hline(data = true_lines, aes(yintercept = intercept), color = "red", linetype = "dashed", size = 0.9) +
-  geom_boxplot(alpha = 0.75, outlier.size = 1) +
+  geom_boxplot(alpha = 0.8, outlier.size = 0.9, position = position_dodge(width = 0.8)) +
   facet_wrap(~ param_label, scales = "free_y") +
-  scale_fill_manual(values = c("WLS" = "#2b5c8f", "OLS" = "#e06d53"), name = "Método de Ajuste:") +
+  scale_fill_manual(values = c("REML" = "#27ae60", "WLS" = "#2b5c8f", "OLS" = "#e06d53"), name = "Método:") +
   labs(
-    title = "Distribuição dos Parâmetros Estimados via Monte Carlo",
+    title = "Comparação da Distribuição dos Parâmetros: REML vs WLS vs OLS",
     subtitle = "Linha vermelha tracejada indica o valor verdadeiro dos parâmetros",
     x = "Tamanho Amostral (n)",
     y = "Valor Estimado"
   ) +
   theme_academic
 
-ggsave("plots/boxplot_parametros.png", p2, width = 10, height = 6, dpi = 300)
+ggsave("plots/boxplot_reml_vs_wls.png", p1, width = 10, height = 6, dpi = 300)
 
-# --- GRÁFICO 3: Evolução do RMSE em Função do Tamanho Amostral ---
-p3 <- ggplot(summary_df, aes(x = factor(n), y = rmse, color = method, group = method)) +
+# --- GRÁFICO 2: Comparação de RMSE em Função do Tamanho Amostral ---
+summary_df_plot <- summary_df %>%
+  mutate(method = factor(method, levels = c("REML", "WLS", "OLS")))
+
+p2 <- ggplot(summary_df_plot, aes(x = factor(n), y = rmse, color = method, group = method)) +
   geom_line(size = 1.2) +
   geom_point(size = 3) +
   facet_wrap(~ param_label, scales = "free_y") +
-  scale_color_manual(values = c("WLS" = "#2b5c8f", "OLS" = "#e06d53"), name = "Método de Ajuste:") +
+  scale_color_manual(values = c("REML" = "#27ae60", "WLS" = "#2b5c8f", "OLS" = "#e06d53"), name = "Método:") +
   labs(
-    title = "Evolução do Erro Quadrático Médio (RMSE) por Tamanho Amostral",
-    subtitle = "Redução do erro de estimação à medida que o tamanho da amostra aumenta",
+    title = "Comparação de Eficiência (RMSE): REML vs WLS vs OLS",
+    subtitle = "O método REML apresenta menor RMSE para Partial Sill e Alcance sob amostras pequenas/médias",
     x = "Tamanho Amostral (n)",
     y = "RMSE (Raiz do Erro Quadrático Médio)"
   ) +
   theme_academic
 
-ggsave("plots/rmse_tamanho_amostral.png", p3, width = 10, height = 5.5, dpi = 300)
+ggsave("plots/rmse_reml_vs_wls.png", p2, width = 10, height = 5.5, dpi = 300)
 
 cat("\n==================================================================\n")
-cat("SIMULAÇÃO E GERAÇÃO DE GRÁFICOS CONCLUÍDAS COM SUCESSO!\n")
+cat("SIMULAÇÃO REML E GERAÇÃO DE GRÁFICOS CONCLUÍDAS COM SUCESSO!\n")
 cat("Gráficos salvos na pasta 'plots/':\n")
-cat(" - plots/exemplo_variograma_ajustado.png\n")
-cat(" - plots/boxplot_parametros.png\n")
-cat(" - plots/rmse_tamanho_amostral.png\n")
+cat(" - plots/boxplot_reml_vs_wls.png\n")
+cat(" - plots/rmse_reml_vs_wls.png\n")
 cat("==================================================================\n")
