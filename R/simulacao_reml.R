@@ -246,8 +246,8 @@ summary_df <- raw_df %>%
       parameter == "phi"    ~ phi_true
     ),
     param_label = case_when(
-      parameter == "tau2"   ~ "Nugget (tau^2)",
-      parameter == "sigma2" ~ "Partial Sill (sigma^2)",
+      parameter == "tau2"   ~ "Efeito Pepita (tau^2)",
+      parameter == "sigma2" ~ "Patamar Parcial (sigma^2)",
       parameter == "phi"    ~ "Alcance (phi)"
     )
   ) %>%
@@ -290,19 +290,19 @@ long_raw <- raw_df %>%
   mutate(
     param_label = factor(
       case_when(
-        parameter == "tau2"   ~ "Nugget (tau^2 = 0.2)",
-        parameter == "sigma2" ~ "Partial Sill (sigma^2 = 1.0)",
+        parameter == "tau2"   ~ "Efeito Pepita (tau^2 = 0.2)",
+        parameter == "sigma2" ~ "Patamar Parcial (sigma^2 = 1.0)",
         parameter == "phi"    ~ "Alcance (phi = 20.0)"
       ),
-      levels = c("Nugget (tau^2 = 0.2)", "Partial Sill (sigma^2 = 1.0)", "Alcance (phi = 20.0)")
+      levels = c("Efeito Pepita (tau^2 = 0.2)", "Patamar Parcial (sigma^2 = 1.0)", "Alcance (phi = 20.0)")
     ),
     n_label = factor(paste("n =", n), levels = c("n = 50", "n = 100", "n = 200")),
     method  = factor(method, levels = c("REML", "WLS", "OLS"))
   )
 
 true_lines <- data.frame(
-  param_label = factor(c("Nugget (tau^2 = 0.2)", "Partial Sill (sigma^2 = 1.0)", "Alcance (phi = 20.0)"),
-                       levels = c("Nugget (tau^2 = 0.2)", "Partial Sill (sigma^2 = 1.0)", "Alcance (phi = 20.0)")),
+  param_label = factor(c("Efeito Pepita (tau^2 = 0.2)", "Patamar Parcial (sigma^2 = 1.0)", "Alcance (phi = 20.0)"),
+                       levels = c("Efeito Pepita (tau^2 = 0.2)", "Patamar Parcial (sigma^2 = 1.0)", "Alcance (phi = 20.0)")),
   intercept = c(0.2, 1.0, 20.0)
 )
 
@@ -333,7 +333,7 @@ p2 <- ggplot(summary_df_plot, aes(x = factor(n), y = rmse, color = method, group
   scale_color_manual(values = c("REML" = "#27ae60", "WLS" = "#2b5c8f", "OLS" = "#e06d53"), name = "Método:") +
   labs(
     title = "Comparação de Eficiência (RMSE): REML vs WLS vs OLS",
-    subtitle = "O método REML apresenta menor RMSE para Partial Sill e Alcance sob amostras pequenas/médias",
+    subtitle = "O método REML apresenta menor RMSE para Patamar Parcial e Alcance sob amostras pequenas/médias",
     x = "Tamanho Amostral (n)",
     y = "RMSE (Raiz do Erro Quadrático Médio)"
   ) +

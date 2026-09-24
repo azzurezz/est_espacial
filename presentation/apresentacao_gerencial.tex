@@ -33,27 +33,27 @@
 \begin{document}
 
 % ------------------------------------------------------------------------------
-% SLIDE 1: TITULO
+% SLIDE 1: TÍTULO
 % ------------------------------------------------------------------------------
 \begin{frame}
   \titlepage
 \end{frame}
 
 % ------------------------------------------------------------------------------
-% SLIDE 2: CONTEXTO E OBJETIVO
+% SLIDE 2: CONTEXTO E OBJETIVO ESTRATÉGICO
 % ------------------------------------------------------------------------------
 \begin{frame}{Contexto \& Objetivo Estratégico}
   \begin{block}{Motivação}
     \begin{itemize}
-      \item A \textbf{Krigagem Ordinária} fornece predições espaciais ótimas (BLUP) cujos pesos dependem da função de covariância espacial.
-      \item Tradicionalmente, os parâmetros (\textbf{Nugget $\tau^2$}, \textbf{Partial Sill $\sigma^2$} e \textbf{Alcance $\phi$}) são estimados por variograma empírico (\textbf{WLS/OLS}) ou por verossimilhança (\textbf{REML}).
+      \item A \textbf{Krigagem Ordinária} fornece predições espaciais ótimas de variância mínima (Melhor Preditor Linear Não-Viesado - BLUP) cujos pesos dependem da função de covariância espacial.
+      \item Tradicionalmente, os parâmetros (\textbf{Efeito Pepita $\tau^2$}, \textbf{Patamar Parcial $\sigma^2$} e \textbf{Alcance $\phi$}) são estimados por variograma empírico (\textbf{Mínimos Quadrados Ponderados - WLS / Mínimos Quadrados Ordinários - OLS}) ou por verossimilhança (\textbf{Máxima Verossimilhança Restrita - REML}).
     \end{itemize}
   \end{block}
 
   \vspace{0.2cm}
 
   \begin{block}{Objetivo Principal}
-    Comparar a acurácia e o erro quadrático médio (RMSE) da \textbf{Máxima Verossimilhança Restrita (REML)} contra os métodos baseados no variograma empírico (\textbf{WLS} e \textbf{OLS}) em diferentes tamanhos amostrais ($n \in \{50, 100, 200\}$).
+    Comparar a acurácia (viés) e a precisão (Erro Quadrático Médio - RMSE) da \textbf{Máxima Verossimilhança Restrita (REML)} contra os métodos baseados no variograma empírico (\textbf{WLS} e \textbf{OLS}) sob diferentes tamanhos amostrais ($n \in \{50, 100, 200\}$).
   \end{block}
 \end{frame}
 
@@ -88,8 +88,8 @@
     \begin{column}{0.48\textwidth}
       \begin{block}{Parâmetros Verdadeiros}
         \begin{itemize}
-          \item \textbf{Nugget ($\tau^2$):} $0.20$ (Ruído microescala)
-          \item \textbf{Partial Sill ($\sigma^2$):} $1.00$ (Variância espacial)
+          \item \textbf{Efeito Pepita ($\tau^2$):} $0.20$ (Ruído em microescala)
+          \item \textbf{Patamar Parcial ($\sigma^2$):} $1.00$ (Variância espacial)
           \item \textbf{Alcance ($\phi$):} $20.0$ (Decaimento espacial)
           \item \textbf{Modelo:} Exponencial $\gamma(h) = \tau^2 + \sigma^2(1 - e^{-h/\phi})$
         \end{itemize}
@@ -153,17 +153,17 @@
       \toprule
       \textbf{Tamanho ($n$)} & \textbf{Método} & \textbf{Parâmetro} & \textbf{Valor Real} & \textbf{Média Est.} & \textbf{Viés Absoluto} & \textbf{RMSE} \\
       \midrule
-      $n = 50$ & \textbf{\color{remlgreen}REML} & Nugget ($\tau^2$) & 0.20 & 0.186 & -0.014 & \textbf{0.177} \\
-      $n = 50$ & WLS & Nugget ($\tau^2$) & 0.20 & 0.287 & +0.087 & 0.257 \\
+      $n = 50$ & \textbf{\color{remlgreen}REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.186 & -0.014 & \textbf{0.177} \\
+      $n = 50$ & WLS & Efeito Pepita ($\tau^2$) & 0.20 & 0.287 & +0.087 & 0.257 \\
       $n = 50$ & \textbf{\color{remlgreen}REML} & Alcance ($\phi$)   & 20.0 & 33.00 & +13.00 & \textbf{43.10} \\
       $n = 50$ & OLS & Alcance ($\phi$)   & 20.0 & 43.76 & +23.76 & 54.62 \\
       \midrule
-      $n = 100$ & \textbf{\color{remlgreen}REML} & Sill ($\sigma^2$) & 1.00 & 1.145 & +0.145 & \textbf{0.578} \\
-      $n = 100$ & OLS & Sill ($\sigma^2$) & 1.00 & 1.376 & +0.376 & 1.133 \\
+      $n = 100$ & \textbf{\color{remlgreen}REML} & Patamar Parcial ($\sigma^2$) & 1.00 & 1.145 & +0.145 & \textbf{0.578} \\
+      $n = 100$ & OLS & Patamar Parcial ($\sigma^2$) & 1.00 & 1.376 & +0.376 & 1.133 \\
       $n = 100$ & \textbf{\color{remlgreen}REML} & Alcance ($\phi$)   & 20.0 & 26.96 & +6.96  & \textbf{26.80} \\
       \midrule
-      $n = 200$ & \textbf{\color{remlgreen}REML} & Nugget ($\tau^2$) & 0.20 & 0.192 & -0.008 & \textbf{0.068} \\
-      $n = 200$ & \textbf{\color{remlgreen}REML} & Sill ($\sigma^2$) & 1.00 & 1.002 & +0.002 & \textbf{0.357} \\
+      $n = 200$ & \textbf{\color{remlgreen}REML} & Efeito Pepita ($\tau^2$) & 0.20 & 0.192 & -0.008 & \textbf{0.068} \\
+      $n = 200$ & \textbf{\color{remlgreen}REML} & Patamar Parcial ($\sigma^2$) & 1.00 & 1.002 & +0.002 & \textbf{0.357} \\
       $n = 200$ & \textbf{\color{remlgreen}REML} & Alcance ($\phi$)   & 20.0 & 20.30 & +0.30  & \textbf{10.48} \\
       \bottomrule
     \end{tabular}
@@ -177,8 +177,8 @@
   \begin{block}{Principais Descobertas}
     \begin{enumerate}
       \item \textbf{Superioridade do REML:} O REML superou consistentemente WLS e OLS em acurácia (menor viés) e precisão (menor RMSE) em todos os cenários amostrais.
-      \item \textbf{Mitigação de Superestimativa do Alcance:} Para $n = 50$, o OLS superestimou o alcance em $+118\%$ (RMSE 54.6), enquanto o REML manteve viés controlado em $+12\%$ (RMSE 16.8).
-      \item \textbf{Precisão do Nugget:} O REML estima o Nugget ($\tau^2$) com RMSE reduzido em mais de $70\%$ em relação ao WLS para $n = 50$.
+      \item \textbf{Mitigação de Superestimativa do Alcance:} Para $n = 50$, o OLS superestimou o alcance em $+118\%$ (RMSE 54.6), enquanto o REML manteve o viés reduzido em $+65\%$ (RMSE 43.1).
+      \item \textbf{Precisão do Efeito Pepita:} O REML estima o Efeito Pepita ($\tau^2$) com RMSE reduzido em mais de $30\%$ em relação ao WLS para $n = 50$.
     \end{enumerate}
   \end{block}
 
@@ -186,8 +186,8 @@
 
   \begin{alertblock}{Recomendações Práticas para Aplicação}
     \begin{itemize}
-      \item \textbf{Amorstras Pequenas a Médias ($n \le 200$):} Priorizar a estimação por **REML** devido à eficiência estatística superior.
-      \item \textbf{Aplicações de Grande Escala ($n > 1000$):} Utilizar WLS quando o custo computacional da inversão matricial $O(n^3)$ do REML for proibitivo.
+      \item \textbf{Amostras Pequenas a Médias ($n \le 200$):} Priorizar a estimação por **REML** devido à eficiência estatística superior.
+      \item \textbf{Aplicações de Grande Escala ($n > 1000$):} Utilizar WLS quando o custo computacional da inversão matricial $O(n^3)$ do REML for elevado.
     \end{itemize}
   \end{alertblock}
 \end{frame}
