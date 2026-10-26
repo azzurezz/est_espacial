@@ -105,14 +105,15 @@ ggsave("eleicao/outputs/maps/mapa_votacao_flavio_mg.png", mapa_votos, width = 10
 cat(" - Salvo: eleicao/outputs/maps/mapa_votacao_flavio_mg.png\n\n")
 
 # Mapa da Área de Soja (Hectares)
-cat("3.1 Gerando mapa da área plantada de soja (IBGE)...\n")
-mapa_soja <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = log10(soja_area_plantada_ha + 1))) +
-  geom_polygon(color = "gray30", linewidth = 0.08) +
+mapa_soja <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = soja_area_plantada_ha)) +
+  geom_polygon(color = "gray45", linewidth = 0.08) +
   coord_fixed(1.08) +
-  scale_fill_viridis_c(
-    option = "viridis",
-    name = "Área de Soja\n[log10(ha + 1)]",
-    labels = function(x) paste0(format(round(10^x - 1, 0), big.mark = "."), " ha")
+  scale_fill_gradient(
+    low = "#ffffff",
+    high = "#005a32",
+    limits = c(0, max(df$soja_area_plantada_ha, na.rm = TRUE)),
+    name = "Área de Soja\n(Hectares)",
+    labels = function(x) paste0(format(round(x, 0), big.mark = "."), " ha")
   ) +
   theme_void(base_size = 13) +
   labs(

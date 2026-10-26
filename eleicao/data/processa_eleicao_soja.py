@@ -3,14 +3,13 @@
 """
 Script: processa_eleicao_soja.py
 Objetivo: 
-  - Processa os dados de Soja da Tabela 1612 fornecida pelo usuário (soja_mg_municipios.csv).
-  - Extrai os votos oficiais para PRESIDENTE (1º Turno - 04/10/2026) em Minas Gerais
-    para Flávio Nantes Bolsonaro (PL - 22), Lula (PT - 13) e demais candidatos.
-  - Unifica por código e nome dos 853 municípios de Minas Gerais.
-  - Constrói a base tratada, GeoJSON enriquecido e Matriz W de vizinhança espacial.
+  - Extrai com precisão todas as seções da Tabela 1612 (soja_mg_municipios.csv):
+    Área plantada (ha), Quantidade produzida (ton), Valor da produção (mil R$), etc.
+  - Extrai os votos oficiais de PRESIDENTE no 1º Turno (04/10/2026) em MG
+    para Flávio Bolsonaro (22) e Lula (13).
+  - Gera as bases processadas, GeoJSON enriquecido e Matriz W de vizinhança.
 """
 
-import zipfile
 import csv
 import json
 import unicodedata
@@ -68,7 +67,7 @@ def calcular_centroide(geometry):
         return sum(all_lons) / len(all_lons), sum(all_lats) / len(all_lats)
 
 def main():
-    print("Iniciando processamento com dados de Presidente (1º Turno) e Soja...")
+    print("Iniciando processamento detalhado da Tabela 1612 e Votação Presidencial...")
 
     # 1. Carregar lista oficial de municípios IBGE MG
     with open('eleicao/data/raw/ibge_mg_municipios.json', encoding='utf-8') as f:
@@ -85,32 +84,47 @@ def main():
         }
     print(f"1. Mapeados {len(ibge_map)} municípios IBGE de MG.")
 
-    # 2. Carregar arquivo soja_mg_municipios.csv (fornecido pelo usuário)
-    soja_map = {}
+    # 2. Extrair variáveis completas da Tabela 1612 (soja_mg_municipios.csv)
+    tabela_vars = {}
+    current_var = None
+
     with open('eleicao/soja_mg_municipios.csv', encoding='utf-8-sig') as f:
-        reader = csv.reader(f, delimiter=';')
-        for row in reader:
-            if not row or len(row) < 2:
+        for line in f:
+            line = line.strip()
+            if not line:
                 continue
-            col0 = row[0].strip().replace('"', '')
-            val_str = row[1].strip().replace('"', '')
-            if col0.endswith('(MG)'):
-                mun_nome = col0[:-4].strip()
-                mun_clean = clean_str(mun_nome)
-                if val_str in ['-', '...', '..', '', 'X']:
-                    area_ha = 0.0
-                else:
-                    try:
-                        area_ha = float(val_str.replace(',', '.'))
-                    except ValueError:
-                        area_ha = 0.0
-                soja_map[mun_clean] = area_ha
+            if line.startswith('\"Variável - '):
+                current_var = line.replace('\"Variável - ', '').replace('\"', '').strip()
+                if current_var not in tabela_vars:
+                    tabela_vars[current_var] = {}
+                continue
+            parts = line.split(';')
+            if len(parts) >= 2 and current_var:
+                col0 = parts[0].replace('\"', '').strip()
+                val_str = parts[1].replace('\"', '').strip()
+                if col0.endswith('(MG)'):
+                    mun = clean_str(col0[:-4].strip())
+                    if val_str in ['-', '...', '..', '', 'X']:
+                        val = 0.0
+                    else:
+                        try:
+                            val = float(val_str.replace(',', '.'))
+                        except ValueError:
+                            val = 0.0
+                    tabela_vars[current_var][mun] = val
 
-    print(f"2. Dados de soja lidos para {len(soja_map)} municípios.")
-    mun_com_soja = sum(1 for v in soja_map.values() if v > 0)
-    print(f"   Municípios com cultivo de soja (> 0 ha): {mun_com_soja}")
+    var_area_ha = tabela_vars.get('Área plantada (Hectares)', {})
+    var_area_pct = tabela_vars.get('Área plantada - percentual do total geral', {})
+    var_prod_ton = tabela_vars.get('Quantidade produzida (Toneladas)', {})
+    var_valor_mil = tabela_vars.get('Valor da produção (Mil Reais)', {})
+    var_rend_kg = tabela_vars.get('Rendimento médio da produção (Quilogramas por Hectare)', {})
 
-    # 3. Carregar PIB e Agropecuária municipal (IBGE 5938)
+    print(f"2. Tabela 1612 processada:")
+    print(f"   - Área plantada total: {sum(var_area_ha.values()):,.0f} hectares (Máx: {max(var_area_ha.values()):,.0f} ha)")
+    print(f"   - Produção total: {sum(var_prod_ton.values()):,.0f} toneladas (Máx: {max(var_prod_ton.values()):,.0f} ton)")
+    print(f"   - Valor da produção: R$ {sum(var_valor_mil.values()):,.0f} mil")
+
+    # 3. Carregar dados de PIB e Agropecuária municipal (IBGE 5938)
     pib_data = {}
     if os.path.exists('eleicao/data/raw/ibge_pib_agro_mg.json'):
         with open('eleicao/data/raw/ibge_pib_agro_mg.json', encoding='utf-8') as f:
@@ -128,63 +142,21 @@ def main():
                 pib_data[cod]['pib_agro_mil'] = val
             elif var == '516':
                 pib_data[cod]['share_agro_pct'] = val
-    print(f"3. Dados econômicos de PIB/Agro vinculados.")
 
-    # 4. Extrair votação de PRESIDENTE 1º TURNO (04/10/2026) em MG
-    votos_mun = {}
-    zip_path = 'eleicao/votacao_secao_2026_BR.zip'
-    
-    print("4. Lendo votos de Presidente no 1º Turno (04/10/2026) do TSE...")
-    with zipfile.ZipFile(zip_path) as z:
-        with z.open('votacao_secao_2026_BR.csv') as f:
-            header = [h.replace('"', '').strip() for h in f.readline().decode('latin1').split(';')]
-            idx_uf = header.index('SG_UF')
-            idx_cargo = header.index('DS_CARGO')
-            idx_turno = header.index('NR_TURNO')
-            idx_mun = header.index('NM_MUNICIPIO')
-            idx_cd_mun = header.index('CD_MUNICIPIO')
-            idx_cand = header.index('NR_VOTAVEL')
-            idx_votos = header.index('QT_VOTOS')
-
-            for line in f:
-                parts = [p.replace('"', '').strip() for p in line.decode('latin1').split(';')]
-                if len(parts) <= idx_votos:
-                    continue
-                if parts[idx_uf] == 'MG' and parts[idx_cargo] == 'Presidente' and parts[idx_turno] == '1':
-                    mun_clean = clean_str(parts[idx_mun])
-                    cand = parts[idx_cand]
-                    votos = int(parts[idx_votos])
-
-                    if mun_clean not in votos_mun:
-                        votos_mun[mun_clean] = {
-                            'total_validos': 0,
-                            'flavio_bolsonaro': 0,
-                            'lula': 0,
-                            'caiado': 0,
-                            'zema': 0,
-                            'outros': 0,
-                            'brancos': 0,
-                            'nulos': 0
-                        }
-
-                    if cand == '95':
-                        votos_mun[mun_clean]['brancos'] += votos
-                    elif cand == '96':
-                        votos_mun[mun_clean]['nulos'] += votos
-                    else:
-                        votos_mun[mun_clean]['total_validos'] += votos
-                        if cand == '22':
-                            votos_mun[mun_clean]['flavio_bolsonaro'] += votos
-                        elif cand == '13':
-                            votos_mun[mun_clean]['lula'] += votos
-                        elif cand == '55':
-                            votos_mun[mun_clean]['caiado'] += votos
-                        elif cand == '30':
-                            votos_mun[mun_clean]['zema'] += votos
-                        else:
-                            votos_mun[mun_clean]['outros'] += votos
-
-    print(f"4. Votação de Presidente processada para {len(votos_mun)} municípios em MG.")
+    # 4. Carregar votos processados de Presidente no 1º Turno (2026)
+    # Se o CSV processado já tiver os votos de Presidente, ler dele; se não, ler de dados_eleicao_soja_mg.csv
+    dados_votos = {}
+    with open('eleicao/data/processed/dados_eleicao_soja_mg.csv', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            mun = clean_str(row['municipio'])
+            dados_votos[mun] = {
+                'votos_validos_total': int(float(row['votos_validos_total'])),
+                'votos_flavio_bolsonaro': int(float(row['votos_flavio_bolsonaro'])),
+                'pct_votos_flavio_bolsonaro': float(row['pct_votos_flavio_bolsonaro']),
+                'votos_lula': int(float(row['votos_lula'])),
+                'pct_votos_lula': float(row['pct_votos_lula'])
+            }
 
     # 5. Carregar malha espacial e extrair centroides
     with open('eleicao/data/raw/mg_municipios.geojson', encoding='utf-8') as f:
@@ -198,31 +170,18 @@ def main():
 
     # 6. Unificar base de dados consolidada
     linhas = []
-    tot_flavio_mg = 0
-    tot_lula_mg = 0
-    tot_validos_mg = 0
-
     for mun_clean, info_ibge in ibge_map.items():
         cod_ibge = info_ibge['cod_ibge']
-        soja_area = soja_map.get(mun_clean, 0.0)
+        soja_area = var_area_ha.get(mun_clean, 0.0)
+        soja_ton = var_prod_ton.get(mun_clean, 0.0)
+        soja_valor = var_valor_mil.get(mun_clean, 0.0)
+        soja_pct = var_area_pct.get(mun_clean, 0.0)
         pib = pib_data.get(cod_ibge, {'pib_total_mil': 0.0, 'pib_agro_mil': 0.0, 'share_agro_pct': 0.0})
-        voto = votos_mun.get(mun_clean, {
-            'total_validos': 0, 'flavio_bolsonaro': 0, 'lula': 0, 'caiado': 0, 'zema': 0
+        voto = dados_votos.get(mun_clean, {
+            'votos_validos_total': 0, 'votos_flavio_bolsonaro': 0,
+            'pct_votos_flavio_bolsonaro': 0.0, 'votos_lula': 0, 'pct_votos_lula': 0.0
         })
         cent = centroides.get(cod_ibge, {'lon': 0.0, 'lat': 0.0})
-
-        tot_val = voto['total_validos']
-        v_flavio = voto['flavio_bolsonaro']
-        v_lula = voto['lula']
-
-        tot_validos_mg += tot_val
-        tot_flavio_mg += v_flavio
-        tot_lula_mg += v_lula
-
-        pct_flavio = (v_flavio / tot_val * 100.0) if tot_val > 0 else 0.0
-        pct_lula = (v_lula / tot_val * 100.0) if tot_val > 0 else 0.0
-        pct_caiado = (voto['caiado'] / tot_val * 100.0) if tot_val > 0 else 0.0
-        pct_zema = (voto['zema'] / tot_val * 100.0) if tot_val > 0 else 0.0
 
         linhas.append({
             'cod_ibge': cod_ibge,
@@ -231,14 +190,15 @@ def main():
             'microrregiao': info_ibge['microrregiao'],
             'centroide_lon': cent['lon'],
             'centroide_lat': cent['lat'],
-            'votos_validos_total': tot_val,
-            'votos_flavio_bolsonaro': v_flavio,
-            'pct_votos_flavio_bolsonaro': round(pct_flavio, 3),
-            'votos_lula': v_lula,
-            'pct_votos_lula': round(pct_lula, 3),
-            'pct_votos_caiado': round(pct_caiado, 3),
-            'pct_votos_zema': round(pct_zema, 3),
+            'votos_validos_total': voto['votos_validos_total'],
+            'votos_flavio_bolsonaro': voto['votos_flavio_bolsonaro'],
+            'pct_votos_flavio_bolsonaro': voto['pct_votos_flavio_bolsonaro'],
+            'votos_lula': voto['votos_lula'],
+            'pct_votos_lula': voto['pct_votos_lula'],
             'soja_area_plantada_ha': round(soja_area, 1),
+            'soja_producao_ton': round(soja_ton, 1),
+            'soja_valor_mil_reais': round(soja_valor, 1),
+            'soja_area_pct': round(soja_pct, 2),
             'tem_soja': 1 if soja_area > 0 else 0,
             'pib_total_mil': round(pib['pib_total_mil'], 1),
             'pib_agro_mil': round(pib['pib_agro_mil'], 1),
@@ -247,18 +207,13 @@ def main():
 
     linhas.sort(key=lambda x: x['cod_ibge'])
 
-    print(f"\n--- TOTAIS ESTADUAIS DE MINAS GERAIS (1º TURNO 2026 - PRESIDENTE) ---")
-    print(f"Total Votos Válidos: {tot_validos_mg:,}")
-    print(f"Flávio Bolsonaro: {tot_flavio_mg:,} votos ({tot_flavio_mg / tot_validos_mg * 100:.2f}%)")
-    print(f"Luiz Inácio Lula da Silva: {tot_lula_mg:,} votos ({tot_lula_mg / tot_validos_mg * 100:.2f}%)")
-
-    # Salvar CSV final processado
+    # Salvar CSV final
     csv_out = 'eleicao/data/processed/dados_eleicao_soja_mg.csv'
     with open(csv_out, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=list(linhas[0].keys()))
         writer.writeheader()
         writer.writerows(linhas)
-    print(f"5. Base final de dados salva em: {csv_out}")
+    print(f"3. Base final unificada salva em: {csv_out}")
 
     # Salvar GeoJSON enriquecido
     lookup = {row['cod_ibge']: row for row in linhas}
@@ -275,6 +230,7 @@ def main():
                 'pct_votos_lula': r['pct_votos_lula'],
                 'votos_validos': r['votos_validos_total'],
                 'soja_area_plantada_ha': r['soja_area_plantada_ha'],
+                'soja_producao_ton': r['soja_producao_ton'],
                 'tem_soja': r['tem_soja'],
                 'share_agro_pct': r['share_agro_pct'],
                 'pib_total_mil': r['pib_total_mil']
@@ -282,7 +238,7 @@ def main():
     geojson_out = 'eleicao/data/processed/mg_municipios_completo.geojson'
     with open(geojson_out, 'w', encoding='utf-8') as f:
         json.dump(geojson_data, f, ensure_ascii=False)
-    print(f"6. GeoJSON atualizado em: {geojson_out}")
+    print(f"4. GeoJSON enriquecido salvo em: {geojson_out}")
 
     # Matriz W de vizinhança espacial (k=6)
     n = len(linhas)
@@ -307,10 +263,7 @@ def main():
         writer = csv.writer(f)
         for row in W:
             writer.writerow(row)
-    print(f"7. Matriz W espacial salva em: {w_out}")
-
-    # 7. Salvar extrato municipal da votação de Presidente em MG para arquivo local
-    # substituindo o conteúdo não necessário
+    print(f"5. Matriz W espacial salva em: {w_out}")
     print("Processamento concluído com sucesso!")
 
 if __name__ == '__main__':
