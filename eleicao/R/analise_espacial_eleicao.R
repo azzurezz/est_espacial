@@ -199,22 +199,33 @@ p_moran_plot <- ggplot(df_moran, aes(x = z, y = Wz)) +
     "Alto-Baixo (Outlier Espacial)" = "#fdae61",
     "Baixo-Alto (Outlier Espacial)" = "#abd9e9"
   )) +
+  guides(color = guide_legend(
+    nrow = 2,
+    byrow = TRUE,
+    title.position = "top",
+    title.hjust = 0.5
+  )) +
   theme_minimal(base_size = 12) +
   labs(
     title = "Diagrama de Dispersão de Moran (Moran Scatterplot) - Votos Flávio Bolsonaro (1º Turno)",
     subtitle = paste0("Índice de Moran Global I = ", round(moran_votos$I, 4), " (z = ", round(moran_votos$z_score, 2), ", p < 0.001)"),
     x = "Votação Centrada e Padronizada (z)",
     y = "Defasagem Espacial / Lag Médio dos Vizinhos (Wz)",
-    color = "Quadrante LISA",
+    color = "Regime Espacial / Quadrante LISA",
     caption = "A inclinação da reta de regressão corresponde ao Índice de Moran Global (I)."
   ) +
   theme(
-    plot.title = element_text(face = "bold", size = 13),
-    plot.subtitle = element_text(size = 11, color = "gray30"),
-    legend.position = "bottom"
+    plot.title = element_text(face = "bold", size = 13, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, color = "gray30", hjust = 0.5),
+    plot.caption = element_text(size = 9, color = "gray40", hjust = 0.5, margin = margin(t = 10)),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold", size = 10),
+    legend.text = element_text(size = 9),
+    legend.box.margin = margin(t = 8, b = 4),
+    plot.margin = margin(t = 15, r = 20, b = 15, l = 20)
   )
 
-ggsave("eleicao/outputs/figures/moran_scatterplot_votos.png", p_moran_plot, width = 8.5, height = 6.5, dpi = 300)
+ggsave("eleicao/outputs/figures/moran_scatterplot_votos.png", p_moran_plot, width = 9.5, height = 7.2, dpi = 300)
 cat(" - Salvo: eleicao/outputs/figures/moran_scatterplot_votos.png\n\n")
 
 # ------------------------------------------------------------------------------
