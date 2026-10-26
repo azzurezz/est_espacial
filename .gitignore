@@ -1,7 +1,9 @@
 # Arquivos de resultados e apresentações
-presentation/plots/
+**/plots/
 *.pdf
 *.csv
+*.zip
+*.tar.gz
 
 # History files
 .Rhistory
