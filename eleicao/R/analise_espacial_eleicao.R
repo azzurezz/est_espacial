@@ -1,17 +1,11 @@
 # ==============================================================================
 # PROJETO: Estatística Espacial Aplicada a Dados Eleitorais
 # ESTADO: Minas Gerais (853 municípios)
-# CANDIDATO: Flávio Roscoe (PL - 22, Eleição Geral 2026 MG)
-# OBJETIVO: 
-#   1. Percentual de votação de Flávio por município em MG.
-#   2. Mapa coroplético da votação nos 853 municípios.
-#   3. Autocorrelação espacial via Índice de Moran Global e Moran Scatterplot.
-#   4. Obtenção de covariáveis (Soja PAM/IBGE, PIB Agro e PIB Municipal) e
-#      estimação de Regressão Linear Múltipla (OLS).
-#   5. Extração dos resíduos da regressão e teste de correlação espacial residual.
+# ELEIÇÃO: Presidencial 2026 - 1º Turno (04/10/2026)
+# CANDIDATO: Flávio Nantes Bolsonaro (PL - 22) vs Lula (PT - 13)
+# BASE DE SOJA: Tabela 1612 IBGE / PAM (soja_mg_municipios.csv)
 # ==============================================================================
 
-# Carregar bibliotecas necessárias
 suppressPackageStartupMessages({
   library(jsonlite)
   library(dplyr)
@@ -20,30 +14,37 @@ suppressPackageStartupMessages({
 })
 
 cat("==================================================================\n")
-cat("   ESTATÍSTICA ESPACIAL: VOTAÇÃO DE FLÁVIO ROSCOE & AGRONEGÓCIO MG\n")
+cat("   ESTATÍSTICA ESPACIAL: FLÁVIO BOLSONARO (1º TURNO 2026) & SOJA\n")
 cat("==================================================================\n\n")
 
-# Criar pastas de saída caso não existam
+# Criar pastas de saída se necessário
 dir.create("eleicao/outputs/maps", recursive = TRUE, showWarnings = FALSE)
 dir.create("eleicao/outputs/figures", recursive = TRUE, showWarnings = FALSE)
 
 # ------------------------------------------------------------------------------
-# 1. CARREGAMENTO DOS DADOS PROCESSADOS
+# 1. CARREGAR DADOS UNIFICADOS
 # ------------------------------------------------------------------------------
-cat("1. Carregando base de dados unificada...\n")
+cat("1. Carregando dados eleitorais e agrícolas...\n")
 df <- read.csv("eleicao/data/processed/dados_eleicao_soja_mg.csv", stringsAsFactors = FALSE)
 df$cod_ibge <- as.character(df$cod_ibge)
-cat(" - Total de municípios em MG:", nrow(df), "\n")
-cat(" - Média de votação de Flávio Roscoe:", round(mean(df$pct_votos_flavio), 2), "%\n")
-cat(" - Mediana de votação:", round(median(df$pct_votos_flavio), 2), "%\n")
-cat(" - Mínimo:", round(min(df$pct_votos_flavio), 2), "% | Máximo:", round(max(df$pct_votos_flavio), 2), "%\n")
-cat(" - Municípios com cultivo de soja:", sum(df$tem_soja == 1), "de", nrow(df), "\n\n")
 
-# Carregar Matriz de Pesos Espaciais W (k=6)
+cat(" - Total de municípios em MG:", nrow(df), "\n")
+cat(" - Votos Válidos Totais em MG:", format(sum(df$votos_validos_total), big.mark = "."), "\n")
+cat(" - Total Flávio Bolsonaro (22):", format(sum(df$votos_flavio_bolsonaro), big.mark = "."), 
+    paste0("(", round(sum(df$votos_flavio_bolsonaro) / sum(df$votos_validos_total) * 100, 2), "%)\n"))
+cat(" - Total Lula (13):", format(sum(df$votos_lula), big.mark = "."), 
+    paste0("(", round(sum(df$votos_lula) / sum(df$votos_validos_total) * 100, 2), "%)\n")
+)
+cat(" - Média municipal % Flávio Bolsonaro:", round(mean(df$pct_votos_flavio_bolsonaro), 2), "%\n")
+cat(" - Mínimo:", round(min(df$pct_votos_flavio_bolsonaro), 2), "% | Máximo:", round(max(df$pct_votos_flavio_bolsonaro), 2), "%\n")
+cat(" - Municípios com cultivo de soja:", sum(df$tem_soja == 1), "de", nrow(df), "\n")
+cat(" - Área total de soja em MG:", format(round(sum(df$soja_area_plantada_ha), 0), big.mark = "."), "hectares\n\n")
+
+# Carregar Matriz W
 W <- as.matrix(read.csv("eleicao/data/processed/matriz_W_knn6.csv", header = FALSE))
 
-# Carregar GeoJSON para renderização dos mapas
-cat("2. Processando geometrias espaciais do GeoJSON de Minas Gerais...\n")
+# Carregar malha espacial
+cat("2. Carregando geometrias vetoriais dos municípios...\n")
 geo <- fromJSON("eleicao/data/processed/mg_municipios_completo.geojson", simplifyVector = FALSE)
 
 poly_list <- list()
@@ -65,29 +66,26 @@ for (i in seq_along(geo$features)) {
   }
 }
 df_poly <- do.call(rbind, poly_list)
-cat(" - Malha territorial carregada:", nrow(df_poly), "vértices espaciais.\n\n")
-
-# Unir dados eleitorais e agrícolas à malha de polígonos
 df_mapa <- left_join(df_poly, df, by = "cod_ibge")
 
 # ------------------------------------------------------------------------------
-# 2. MAPA DA VOTAÇÃO DE FLÁVIO ROSCOE POR MUNICÍPIO (ITEM 2)
+# 2. MAPAS: VOTAÇÃO DE FLÁVIO BOLSONARO & PRODUÇÃO DE SOJA (ITEM 2)
 # ------------------------------------------------------------------------------
-cat("3. Gerando mapa coroplético da votação de Flávio Roscoe...\n")
+cat("3. Gerando mapa coroplético da votação de Flávio Bolsonaro (1º Turno)...\n")
 
-mapa_votos <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = pct_votos_flavio)) +
+mapa_votos <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = pct_votos_flavio_bolsonaro)) +
   geom_polygon(color = "gray30", linewidth = 0.08) +
   coord_fixed(1.08) +
   scale_fill_viridis_c(
     option = "plasma",
-    name = "% Votos Válidos\nFlávio Roscoe",
-    labels = function(x) paste0(x, "%")
+    name = "% Votos Válidos\nFlávio Bolsonaro\n(1º Turno 2026)",
+    labels = function(x) paste0(round(x, 0), "%")
   ) +
   theme_void(base_size = 13) +
   labs(
-    title = "Distribuição Espacial da Votação de Flávio Roscoe (PL) em Minas Gerais",
-    subtitle = "Eleição para Governador 2026 - Dados Oficiais TSE (853 Municípios)",
-    caption = "Fonte: Tribunal Superior Eleitoral (TSE) & IBGE | Elaborado para Estudo de Estatística Espacial"
+    title = "Distribuição Espacial dos Votos de Flávio Bolsonaro em Minas Gerais",
+    subtitle = "Eleição Presidencial 2026 - 1º Turno (04/10/2026) | Dados Oficiais TSE por Município",
+    caption = "Fonte: Tribunal Superior Eleitoral (TSE) - Seções Eleitorais | Elaboração Estatística Espacial"
   ) +
   theme(
     plot.title = element_text(face = "bold", size = 15, hjust = 0.5, margin = margin(b = 6)),
@@ -103,21 +101,21 @@ mapa_votos <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = pct_vo
 ggsave("eleicao/outputs/maps/mapa_votacao_flavio_mg.png", mapa_votos, width = 10, height = 7.5, dpi = 300)
 cat(" - Salvo: eleicao/outputs/maps/mapa_votacao_flavio_mg.png\n\n")
 
-# Mapa da Soja em Minas Gerais
-cat("3.1 Gerando mapa temático da produção de soja...\n")
-mapa_soja <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = log10(soja_producao_ton + 1))) +
+# Mapa da Área de Soja (Hectares)
+cat("3.1 Gerando mapa da área plantada de soja (IBGE)...\n")
+mapa_soja <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = log10(soja_area_plantada_ha + 1))) +
   geom_polygon(color = "gray30", linewidth = 0.08) +
   coord_fixed(1.08) +
   scale_fill_viridis_c(
     option = "viridis",
-    name = "Produção de Soja\n[log10(ton + 1)]",
-    labels = function(x) round(10^x - 1, 0)
+    name = "Área de Soja\n[log10(ha + 1)]",
+    labels = function(x) paste0(format(round(10^x - 1, 0), big.mark = "."), " ha")
   ) +
   theme_void(base_size = 13) +
   labs(
-    title = "Concentração da Produção Agrícola de Soja em Minas Gerais",
-    subtitle = "Destaque para os Polos do Noroeste Mineiro e Triângulo Mineiro / Alto Paranaíba",
-    caption = "Fonte: IBGE - Pesquisa Agrícola Municipal (PAM 5457)"
+    title = "Área Plantada de Soja por Município em Minas Gerais",
+    subtitle = "Destaque para o Noroeste Mineiro e Triângulo Mineiro / Alto Paranaíba (Tabela 1612 IBGE)",
+    caption = "Fonte: IBGE - Produção Agrícola Municipal (PAM / Tabela 1612)"
   ) +
   theme(
     plot.title = element_text(face = "bold", size = 15, hjust = 0.5, margin = margin(b = 6)),
@@ -134,25 +132,18 @@ ggsave("eleicao/outputs/maps/mapa_soja_mg.png", mapa_soja, width = 10, height = 
 cat(" - Salvo: eleicao/outputs/maps/mapa_soja_mg.png\n\n")
 
 # ------------------------------------------------------------------------------
-# 3. TESTE DE AUTOCORRELAÇÃO ESPACIAL: ÍNDICE DE MORAN GLOBAL (ITEM 3)
+# 3. ÍNDICE DE MORAN GLOBAL DOS VOTOS (ITEM 3)
 # ------------------------------------------------------------------------------
-cat("4. Calculando o Índice de Moran Global dos votos de Flávio Roscoe...\n")
+cat("4. Calculando Índice de Moran Global dos votos de Flávio Bolsonaro...\n")
 
 calcula_moran <- function(y, W_mat) {
   n <- length(y)
   z <- y - mean(y)
-  var_y <- sum(z^2) / n
-  
-  # Lag espacial: W %*% z
   Wz <- as.vector(W_mat %*% z)
   
-  # Índice de Moran: I = (z' W z) / (z' z) para W padronizada por linhas
   I_stat <- as.numeric(crossprod(z, Wz) / sum(z^2))
-  
-  # Esperança sob H0: E[I] = -1 / (n - 1)
   E_I <- -1.0 / (n - 1)
   
-  # Variância analítica sob normalidade (Cliff & Ord, 1981)
   S0 <- sum(W_mat)
   S1 <- 0.5 * sum((W_mat + t(W_mat))^2)
   S2 <- sum((rowSums(W_mat) + colSums(W_mat))^2)
@@ -163,41 +154,34 @@ calcula_moran <- function(y, W_mat) {
   p_valor <- 2 * (1 - pnorm(abs(z_score)))
   
   return(list(
-    I = I_stat,
-    E_I = E_I,
-    var_I = var_I,
-    sd_I = sd_I,
-    z_score = z_score,
-    p_valor = p_valor,
-    z = z,
-    Wz = Wz
+    I = I_stat, E_I = E_I, var_I = var_I, sd_I = sd_I,
+    z_score = z_score, p_valor = p_valor, z = z, Wz = Wz
   ))
 }
 
-moran_votos <- calcula_moran(df$pct_votos_flavio, W)
+moran_votos <- calcula_moran(df$pct_votos_flavio_bolsonaro, W)
 
 cat("------------------------------------------------------------------\n")
-cat("RESULTADO DO TESTE DO ÍNDICE DE MORAN (VOTAÇÃO FLÁVIO ROSCOE):\n")
-cat(" - Índice de Moran Observado (I) :", round(moran_votos$I, 5), "\n")
-cat(" - Valor Esperado E[I]           :", round(moran_votos$E_I, 5), "\n")
-cat(" - Desvio-Padrão Teórico         :", round(moran_votos$sd_I, 5), "\n")
-cat(" - Estatística z (z-score)       :", round(moran_votos$z_score, 4), "\n")
-cat(" - Valor-p (bicaudal)            :", format.pval(moran_votos$p_valor, eps = 1e-15), "\n")
-cat(" - Conclusão: FORTE AUTOCORRELAÇÃO ESPACIAL POSITIVA (p < 0.001)!\n")
+cat("RESULTADO DO ÍNDICE DE MORAN (VOTOS FLÁVIO BOLSONARO):\n")
+cat(" - Índice de Moran Global (I)   :", round(moran_votos$I, 5), "\n")
+cat(" - Valor Esperado E[I]          :", round(moran_votos$E_I, 5), "\n")
+cat(" - Desvio-Padrão Teórico        :", round(moran_votos$sd_I, 5), "\n")
+cat(" - Estatística z (z-score)      :", round(moran_votos$z_score, 4), "\n")
+cat(" - Valor-p (bicaudal)           :", format.pval(moran_votos$p_valor, eps = 1e-15), "\n")
+cat(" - Conclusão: FORTÍSSIMA AUTOCORRELAÇÃO ESPACIAL POSITIVA (p < 0.001)!\n")
 cat("------------------------------------------------------------------\n\n")
 
-# Diagrama de Dispersão de Moran (Moran Scatterplot)
+# Moran Scatterplot
 df_moran <- data.frame(
-  z = scale(df$pct_votos_flavio),
+  z = scale(df$pct_votos_flavio_bolsonaro),
   Wz = scale(moran_votos$Wz),
   municipio = df$municipio,
   mesorregiao = df$mesorregiao
 )
 
-# Definir quadrantes LISA
 df_moran$quadrante <- with(df_moran, case_when(
-  z >= 0 & Wz >= 0 ~ "Alto-Alto (Cluster Positivo)",
-  z < 0 & Wz < 0   ~ "Baixo-Baixo (Cluster Baixo)",
+  z >= 0 & Wz >= 0 ~ "Alto-Alto (Cluster Alta Votação)",
+  z < 0 & Wz < 0   ~ "Baixo-Baixo (Cluster Baixa Votação)",
   z >= 0 & Wz < 0  ~ "Alto-Baixo (Outlier Espacial)",
   z < 0 & Wz >= 0  ~ "Baixo-Alto (Outlier Espacial)"
 ))
@@ -208,19 +192,19 @@ p_moran_plot <- ggplot(df_moran, aes(x = z, y = Wz)) +
   geom_point(aes(color = quadrante), alpha = 0.7, size = 2) +
   geom_smooth(method = "lm", se = FALSE, color = "firebrick", linewidth = 1.2) +
   scale_color_manual(values = c(
-    "Alto-Alto (Cluster Positivo)" = "#d73027",
-    "Baixo-Baixo (Cluster Baixo)" = "#4575b4",
+    "Alto-Alto (Cluster Alta Votação)" = "#d73027",
+    "Baixo-Baixo (Cluster Baixa Votação)" = "#4575b4",
     "Alto-Baixo (Outlier Espacial)" = "#fdae61",
     "Baixo-Alto (Outlier Espacial)" = "#abd9e9"
   )) +
   theme_minimal(base_size = 12) +
   labs(
-    title = paste0("Diagrama de Dispersão de Moran (Moran Scatterplot) - Votos Flávio Roscoe"),
-    subtitle = paste0("Índice de Moran I = ", round(moran_votos$I, 4), " (z = ", round(moran_votos$z_score, 2), ", p < 0.001)"),
+    title = "Diagrama de Dispersão de Moran (Moran Scatterplot) - Votos Flávio Bolsonaro (1º Turno)",
+    subtitle = paste0("Índice de Moran Global I = ", round(moran_votos$I, 4), " (z = ", round(moran_votos$z_score, 2), ", p < 0.001)"),
     x = "Votação Centrada e Padronizada (z)",
     y = "Defasagem Espacial / Lag Médio dos Vizinhos (Wz)",
-    color = "Regime Espacial",
-    caption = "A inclinação da reta de regressão OLS corresponde exatamente ao Índice de Moran Global (I)."
+    color = "Quadrante LISA",
+    caption = "A inclinação da reta de regressão corresponde ao Índice de Moran Global (I)."
   ) +
   theme(
     plot.title = element_text(face = "bold", size = 13),
@@ -232,39 +216,38 @@ ggsave("eleicao/outputs/figures/moran_scatterplot_votos.png", p_moran_plot, widt
 cat(" - Salvo: eleicao/outputs/figures/moran_scatterplot_votos.png\n\n")
 
 # ------------------------------------------------------------------------------
-# 4. REGRESSÃO LINEAR: VOTAÇÃO ~ SOJA + AGRO + PIB (ITEM 4)
+# 4. REGRESSÃO LINEAR MÚLTIPLA: VOTO ~ SOJA + AGRO + PIB (ITEM 4)
 # ------------------------------------------------------------------------------
 cat("5. Ajustando Regressão Linear Múltipla (OLS)...\n")
 
-# Preparação das variáveis explicativas
-df$log_soja_ton <- log(df$soja_producao_ton + 1)
+df$log_soja_ha <- log(df$soja_area_plantada_ha + 1)
 df$log_pib_total <- log(df$pib_total_mil + 1)
 
 # Modelo OLS
-# pct_votos_flavio ~ log(soja_ton + 1) + tem_soja + share_agro_pct + log(pib_total)
+# pct_votos_flavio_bolsonaro ~ log(soja_area_plantada_ha + 1) + tem_soja + share_agro_pct + log(pib_total)
 modelo_ols <- lm(
-  pct_votos_flavio ~ log_soja_ton + tem_soja + share_agro_pct + log_pib_total,
+  pct_votos_flavio_bolsonaro ~ log_soja_ha + tem_soja + share_agro_pct + log_pib_total,
   data = df
 )
 
 sumario_ols <- summary(modelo_ols)
 cat("==================================================================\n")
-cat("SUMÁRIO DO MODELO DE REGRESSÃO LINEAR (OLS):\n")
+cat("SUMÁRIO DO MODELO OLS (VOTOS FLÁVIO BOLSONARO ~ SOJA & AGRO):\n")
 print(sumario_ols)
 cat("==================================================================\n\n")
 
-# Gráfico de Relação: Votação vs Produção de Soja
-p_scatter_soja <- ggplot(df, aes(x = log_soja_ton, y = pct_votos_flavio)) +
+# Gráfico de Dispersão: Votos Flávio Bolsonaro vs Área de Soja
+p_scatter_soja <- ggplot(df, aes(x = log_soja_ha, y = pct_votos_flavio_bolsonaro)) +
   geom_point(aes(color = mesorregiao), alpha = 0.65, size = 2.2) +
   geom_smooth(method = "lm", color = "black", linewidth = 1.1, se = TRUE) +
   theme_minimal(base_size = 12) +
   labs(
-    title = "Relação entre Percentual de Votação de Flávio Roscoe e Produção de Soja",
-    subtitle = "Efeito positivo e altamente significativo da soja no voto por município em MG",
-    x = "Produção de Soja em Logaritmo [log(toneladas + 1)]",
-    y = "% de Votos Válidos de Flávio Roscoe",
+    title = "Percentual de Votos de Flávio Bolsonaro vs Área de Soja nos Municípios de MG",
+    subtitle = "Forte associação positiva e significativa entre a presença da soja e o voto em Flávio Bolsonaro (1º Turno)",
+    x = "Área Plantada de Soja em Logaritmo [log(hectares + 1)]",
+    y = "% de Votos Válidos de Flávio Bolsonaro (1º Turno)",
     color = "Mesorregião",
-    caption = "Fonte dos Dados: TSE (2026) e IBGE PAM (5457)"
+    caption = "Fontes: TSE (Presidencial 1º Turno 2026) e IBGE PAM (Tabela 1612)"
   ) +
   theme(
     plot.title = element_text(face = "bold", size = 13),
@@ -278,38 +261,35 @@ ggsave("eleicao/outputs/figures/regressao_voto_vs_soja.png", p_scatter_soja, wid
 cat(" - Salvo: eleicao/outputs/figures/regressao_voto_vs_soja.png\n\n")
 
 # ------------------------------------------------------------------------------
-# 5. ANÁLISE DOS RESÍDUOS E CORRELAÇÃO ESPACIAL RESIDUAL (ITEM 5)
+# 5. RESÍDUOS DA REGRESSÃO & TESTE DE AUTOCORRELAÇÃO RESIDUAL (ITEM 5)
 # ------------------------------------------------------------------------------
-cat("6. Extraindo resíduos e testando correlação espacial residual...\n")
+cat("6. Extraindo resíduos e testando autocorrelação espacial residual...\n")
 
 df$residuos_ols <- residuals(modelo_ols)
 df$valores_ajustados <- fitted(modelo_ols)
 
-# Teste de Moran nos Resíduos do Modelo Linear
 moran_residuos <- calcula_moran(df$residuos_ols, W)
 
 cat("------------------------------------------------------------------\n")
-cat("RESULTADO DO TESTE DO ÍNDICE DE MORAN NOS RESÍDUOS (OLS):\n")
+cat("RESULTADO DO ÍNDICE DE MORAN NOS RESÍDUOS DO MODELO OLS:\n")
 cat(" - Índice de Moran dos Resíduos (I_res) :", round(moran_residuos$I, 5), "\n")
 cat(" - Valor Esperado E[I]                  :", round(moran_residuos$E_I, 5), "\n")
 cat(" - Desvio-Padrão Teórico                :", round(moran_residuos$sd_I, 5), "\n")
 cat(" - Estatística z (z-score)              :", round(moran_residuos$z_score, 4), "\n")
 cat(" - Valor-p (bicaudal)                   :", format.pval(moran_residuos$p_valor, eps = 1e-15), "\n")
-cat(" - Conclusão sobre os resíduos:\n")
+cat(" - Diagnóstico:\n")
 if (moran_residuos$p_valor < 0.05) {
-  cat("   OS RESÍDUOS APRESENTAM AUTOCORRELAÇÃO ESPACIAL SIGNIFICATIVA!\n")
-  cat("   Isso indica que o modelo OLS clássico viola o pressuposto de independência\n")
-  cat("   dos erros (cov(e_i, e_j) != 0). É recomendável aplicar um Modelo Espacial\n")
-  cat("   (Spatial Error Model - SEM ou Spatial Lag - SAR).\n")
+  cat("   OS RESÍDUOS APRESENTAM FORTE AUTOCORRELAÇÃO ESPACIAL RESIDUAL!\n")
+  cat("   O modelo clássico OLS viola a premissa de independência de Gauss-Markov.\n")
+  cat("   Recomenda-se estimação de Modelos Espaciais Autorregressivos (SAR ou SEM).\n")
 } else {
-  cat("   Os resíduos são espacialmente aleatórios (independência mantida).\n")
+  cat("   Os resíduos são espacialmente independentes.\n")
 }
 cat("------------------------------------------------------------------\n\n")
 
-# Unir resíduos à malha de polígonos para o mapa
+# Mapa dos Resíduos
 df_mapa_res <- left_join(df_poly, df[, c("cod_ibge", "residuos_ols", "valores_ajustados")], by = "cod_ibge")
 
-# Mapa dos Resíduos
 mapa_res <- ggplot(df_mapa_res, aes(x = lon, y = lat, group = group, fill = residuos_ols)) +
   geom_polygon(color = "gray30", linewidth = 0.08) +
   coord_fixed(1.08) +
@@ -323,8 +303,8 @@ mapa_res <- ggplot(df_mapa_res, aes(x = lon, y = lat, group = group, fill = resi
   theme_void(base_size = 13) +
   labs(
     title = "Distribuição Espacial dos Resíduos da Regressão Linear (OLS)",
-    subtitle = paste0("Autocorrelação Residual Detectada: Índice de Moran I = ", round(moran_residuos$I, 4), " (p < 0.001)"),
-    caption = "Azul: Votação de Flávio superestimada pelo modelo | Vermelho: Votação subestimada"
+    subtitle = paste0("Votação Flávio Bolsonaro 1º Turno | Moran Residual I = ", round(moran_residuos$I, 4), " (p < 0.001)"),
+    caption = "Azul: Votação superestimada pelo modelo linear | Vermelho: Votação subestimada"
   ) +
   theme(
     plot.title = element_text(face = "bold", size = 15, hjust = 0.5, margin = margin(b = 6)),
@@ -340,7 +320,7 @@ mapa_res <- ggplot(df_mapa_res, aes(x = lon, y = lat, group = group, fill = resi
 ggsave("eleicao/outputs/maps/mapa_residuos_regressao.png", mapa_res, width = 10, height = 7.5, dpi = 300)
 cat(" - Salvo: eleicao/outputs/maps/mapa_residuos_regressao.png\n\n")
 
-# Diagrama de Dispersão de Moran dos Resíduos
+# Moran Scatterplot dos Resíduos
 df_moran_res <- data.frame(
   e_padronizado = scale(df$residuos_ols),
   We_padronizado = scale(moran_residuos$Wz)
@@ -353,11 +333,11 @@ p_moran_res_plot <- ggplot(df_moran_res, aes(x = e_padronizado, y = We_padroniza
   geom_smooth(method = "lm", se = FALSE, color = "darkred", linewidth = 1.2) +
   theme_minimal(base_size = 12) +
   labs(
-    title = "Diagrama de Dispersão de Moran dos Resíduos da Regressão",
-    subtitle = paste0("Moran I (Resíduos) = ", round(moran_residuos$I, 4), " | z-score = ", round(moran_residuos$z_score, 2)),
+    title = "Diagrama de Dispersão de Moran dos Resíduos da Regressão (OLS)",
+    subtitle = paste0("Moran Residual I = ", round(moran_residuos$I, 4), " | z-score = ", round(moran_residuos$z_score, 2)),
     x = "Resíduo Padronizado (e)",
     y = "Lag Espacial dos Resíduos (W * e)",
-    caption = "A persistência de inclinação positiva comprova dependência espacial nos erros residuais."
+    caption = "A persistência de inclinação positiva comprova dependência espacial nos termos de erro."
   ) +
   theme(
     plot.title = element_text(face = "bold", size = 13),
@@ -367,34 +347,44 @@ p_moran_res_plot <- ggplot(df_moran_res, aes(x = e_padronizado, y = We_padroniza
 ggsave("eleicao/outputs/figures/moran_scatterplot_residuos.png", p_moran_res_plot, width = 8, height = 6, dpi = 300)
 cat(" - Salvo: eleicao/outputs/figures/moran_scatterplot_residuos.png\n\n")
 
-# ------------------------------------------------------------------------------
-# 6. RELATÓRIO SÍNTESE FINAL EM CSV
-# ------------------------------------------------------------------------------
+# Tabela Síntese dos Diagnósticos em CSV
 tabela_diagnosticos <- data.frame(
   Metrica = c(
     "Total de Municípios (N)",
-    "Votação Média de Flávio (%)",
+    "Votos Válidos Totais MG",
+    "Votos Flávio Bolsonaro (1º Turno)",
+    "% Estadual Flávio Bolsonaro",
+    "% Estadual Lula",
+    "Média Municipal % Flávio Bolsonaro",
     "Índice de Moran dos Votos (I)",
     "z-score de Moran dos Votos",
     "p-valor Moran dos Votos",
     "R2 da Regressão OLS",
     "R2 Ajustado OLS",
-    "Coeficiente da Soja (log_soja)",
+    "Coeficiente da Soja (log_soja_ha)",
     "p-valor Coeficiente da Soja",
+    "Coeficiente Dummy Soja (tem_soja)",
+    "p-valor Dummy Soja",
     "Índice de Moran dos Resíduos (I_res)",
     "z-score de Moran dos Resíduos",
     "p-valor Moran dos Resíduos"
   ),
   Valor = c(
     as.character(nrow(df)),
-    paste0(round(mean(df$pct_votos_flavio), 2), "%"),
+    format(sum(df$votos_validos_total), big.mark = "."),
+    format(sum(df$votos_flavio_bolsonaro), big.mark = "."),
+    paste0(round(sum(df$votos_flavio_bolsonaro) / sum(df$votos_validos_total) * 100, 2), "%"),
+    paste0(round(sum(df$votos_lula) / sum(df$votos_validos_total) * 100, 2), "%"),
+    paste0(round(mean(df$pct_votos_flavio_bolsonaro), 2), "%"),
     as.character(round(moran_votos$I, 4)),
     as.character(round(moran_votos$z_score, 2)),
     format.pval(moran_votos$p_valor, eps = 1e-15),
     as.character(round(sumario_ols$r.squared, 4)),
     as.character(round(sumario_ols$adj.r.squared, 4)),
-    as.character(round(coef(modelo_ols)["log_soja_ton"], 4)),
-    format.pval(coef(sumario_ols)["log_soja_ton", "Pr(>|t|)"], eps = 1e-15),
+    as.character(round(coef(modelo_ols)["log_soja_ha"], 4)),
+    format.pval(coef(sumario_ols)["log_soja_ha", "Pr(>|t|)"], eps = 1e-15),
+    as.character(round(coef(modelo_ols)["tem_soja"], 4)),
+    format.pval(coef(sumario_ols)["tem_soja", "Pr(>|t|)"], eps = 1e-15),
     as.character(round(moran_residuos$I, 4)),
     as.character(round(moran_residuos$z_score, 2)),
     format.pval(moran_residuos$p_valor, eps = 1e-15)
