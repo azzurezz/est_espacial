@@ -74,10 +74,13 @@ df_mapa <- left_join(df_poly, df, by = "cod_ibge")
 cat("3. Gerando mapa coroplético da votação de Flávio Bolsonaro (1º Turno)...\n")
 
 mapa_votos <- ggplot(df_mapa, aes(x = lon, y = lat, group = group, fill = pct_votos_flavio_bolsonaro)) +
-  geom_polygon(color = "gray30", linewidth = 0.08) +
+  geom_polygon(color = "gray45", linewidth = 0.08) +
   coord_fixed(1.08) +
-  scale_fill_viridis_c(
-    option = "plasma",
+  scale_fill_gradient(
+    low = "#ffffff",
+    high = "#08306b",
+    limits = c(0, max(df$pct_votos_flavio_bolsonaro, na.rm = TRUE)),
+    breaks = seq(0, 80, by = 15),
     name = "% Votos Válidos\nFlávio Bolsonaro\n(1º Turno 2026)",
     labels = function(x) paste0(round(x, 0), "%")
   ) +
