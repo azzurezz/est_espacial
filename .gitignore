@@ -4,6 +4,8 @@
 *.csv
 *.zip
 *.tar.gz
+*.geojson
+eleicao/data/raw/*.json
 
 # History files
 .Rhistory
